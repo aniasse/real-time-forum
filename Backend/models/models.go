@@ -1,17 +1,17 @@
 package models
 
-import "time"
+// import "time"
 
 type Users struct {
-	ID               uint      // Identifiant de l'utilisateur
-	Nickname             string    // Rôle de l'utilisateur
-	Firstname              string    // Nom de l'utilisateur
-	Lastname           string    // Prénom de l'utilisateur
-	Email            string    // Adresse e-mail de l'utilisateur
-	Gender            string    // URL de la photo de l'utilisateur
+	ID               uint      
+	Nickname             string  
+	Firstname              string 
+	Lastname           string    
+	Email            string    
+	Gender            string   
 	Age					int
-	Password         string    // Mot de passe de l'utilisateur
-	Session      time.Time // Dernière session de l'utilisateur
+	Password         string    
+	Session          string
 }
 
 type Register struct {
