@@ -67,18 +67,17 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 
 // Gestionnaire pour l'inscription des utilisateurs
 func HandleRegister(w http.ResponseWriter, r *http.Request) {
-	var register models.Register
 	var newUser models.Users
 
 	// Lire les données JSON de la requête
-	if err := json.NewDecoder(r.Body).Decode(&register); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&newUser); err != nil {
 		jsonResponse(w, http.StatusBadRequest, "Les données d'inscription sont invalides")
 		fmt.Println("Les données d'inscription sont invalides: ", http.StatusBadRequest)
 		return
 	}
 
 	// Vérifier si l'utilisateur existe déjà dans la base de données
-	err := database.DB.QueryRow("SELECT * FROM users WHERE Email = ?",register.Email).
+	err := database.DB.QueryRow("SELECT * FROM users WHERE Email = ?", newUser.Email).
 		Scan(&newUser.ID, &newUser.Nickname, &newUser.Firstname, &newUser.Lastname, &newUser.Email, &newUser.Gender, &newUser.Age, &newUser.Password, &newUser.Session)
 
 	if err == nil {
@@ -93,7 +92,7 @@ func HandleRegister(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Hasher le mot de passe
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(register.Password), bcrypt.DefaultCost)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newUser.Password), bcrypt.DefaultCost)
 	if err != nil {
 		fmt.Println(err) // Journalisation de l'erreur pour le débogage
 		jsonResponse(w, http.StatusInternalServerError, "Erreur lors du hachage du mot de passe")
@@ -102,8 +101,8 @@ func HandleRegister(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Ajouter le nouvel utilisateur à la base de données avec le mot de passe hashé
-	_, err = database.DB.Exec("INSERT INTO users (Nickname, Firstname, Lastname, Email, Age, Gender, Password) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-		newUser.Nickname, newUser.Firstname, newUser.Lastname, register.Email, newUser.Age, newUser.Gender, string(hashedPassword), newUser.Session)								
+	_, err = database.DB.Exec("INSERT INTO users (Nickname, Firstname, Lastname, Email, Age, Gender, Password, Session) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+		newUser.Nickname, newUser.Firstname, newUser.Lastname, newUser.Email, newUser.Age, newUser.Gender, string(hashedPassword), newUser.Session)								
 
 	if err != nil {
 		fmt.Println(err) // Journalisation de l'erreur pour le débogage
