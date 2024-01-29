@@ -166,6 +166,12 @@ body{
     }
 }
 
+@media screen and (min-width:455px) and (max-width:563px) {
+    .container button {
+        margin-bottom: 10px;
+    }
+}
+
 .social-icons{
     margin: 20px 0;
 }
