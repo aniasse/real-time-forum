@@ -12,7 +12,7 @@ loginBtn.addEventListener('click', () => {
 
 // Définir les expressions régulières pour chaque champ
 const regexMap = {
-    pseudo: /^[a-zA-Z0-9].{2,}$/, // Remplacer par votre expression régulière
+    pseudo: /^[a-zA-Z0-9]{4,}$/, // Remplacer par votre expression régulière
     firstName: /^[a-zA-Z]{2,}$/, // Remplacer par votre expression régulière
     lastName: /^[a-zA-Z]{2,}$/, // Remplacer par votre expression régulière
     age: /^(1[4-9]|[2-5][0-9]|60)$/, // Remplacer par votre expression régulière
@@ -21,11 +21,12 @@ const regexMap = {
 };
 
 // Récupérer tous les champs du formulaire
+const button =  document.querySelector('.signup');
+
 const inputs = document.querySelectorAll('input');
 
-let signup = document.querySelector('.signup')
+console.log(button);
 
-console.log(signup);
 
 // Pour chaque champ, ajouter un écouteur d'événements
 inputs.forEach((input) => {
@@ -42,12 +43,18 @@ inputs.forEach((input) => {
 
 // Fonction pour vérifier si tous les champs sont valides
 function checkValidity() {
-    return Array.from(inputs).every((input) => input.style.borderColor === 'green');
+    const greenInputs = Array.from(inputs).filter((input) => input.style.borderColor === 'green');
+    return greenInputs.length === 6;
 }
 
 // Ajouter un écouteur d'événements au bouton
-document.querySelector('.signup').addEventListener('click', function (event) {
-    if (!checkValidity()) {
-        event.preventDefault();
+document.querySelector('.signup').addEventListener('mouseover', function () {
+    if (checkValidity()) {
+        button.style.backgroundColor = '#512da8';
+        button.style.cursor = 'pointer';
+    }else{
+        button.style.backgroundColor = 'red';
+        button.style.cursor = 'not-allowed';
+        // event.preventDefault();
     }
 });
