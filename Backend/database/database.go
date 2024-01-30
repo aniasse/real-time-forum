@@ -36,15 +36,52 @@ func createTables(db *sql.DB) {
 	// Créer les tables si elles n'existent pas déjà
 	_, err := db.Exec(`
 		CREATE TABLE IF NOT EXISTS users (
-			Id INTEGER PRIMARY KEY AUTOINCREMENT,
+			Id TEXT PRIMARY KEY ,
 			Nickname TEXT NOT NULL,
 			Firstname TEXT NOT NULL,
 			Lastname TEXT NOT NULL,
 			Email TEXT NOT NULL,
 			Gender TEXT NOT NULL,
-			Age INTEGER NOT NULL,
+			Age TEXT NOT NULL,
 			Password VARCHAR(254) NOT NULL,
-			Session DATETIME NOT NULL
+			SessionExpiry DATETIME NOT NULL
+		);
+
+		CREATE TABLE IF NOT EXISTS posts (
+            Id TEXT PRIMARY KEY ,
+			UserId TEXT NOT NULL,
+            Title TEXT NOT NULL,
+            CreatedAt DATETIME NOT NULL,
+            Content TEXT NOT NULL,
+            Date DATETIME NOT NULL,
+			FOREIGN KEY(UserId) REFERENCES users(Id)
+			ON DELETE CASCADE
+			ON UPDATE CASCADE
+		);
+
+		CREATE TABLE IF NOT EXISTS comments (
+            Id TEXT PRIMARY KEY ,
+            UserId TEXT NOT NULL,
+            PostId TEXT NOT NULL,
+            CreatedAt DATETIME NOT NULL,
+			FOREIGN KEY(UserId) REFERENCES users(Id)
+			FOREIGN KEY(PostId) REFERENCES posts(Id)
+			ON DELETE CASCADE
+			ON UPDATE CASCADE
+		);
+
+		CREATE TABLE IF NOT EXISTS sessions (
+			Id TEXT PRIMARY KEY ,
+			UserId TEXT,
+			SessionExpiry DATETIME NOT NULL,
+			FOREIGN KEY(UserId) REFERENCES users(Id) ON DELETE CASCADE ON UPDATE CASCADE
+		);
+
+		Create TABLE IF NOT EXISTS categories (
+			PostId TEXT NOT NULL,
+			Category TEXT NOT NULL,
+            FOREIGN KEY(PostId) REFERENCES posts(Id)
+
 		);
 	`)
 
@@ -57,9 +94,9 @@ func createTables(db *sql.DB) {
 func GetUserByID(id int) (*models.Users, error) {
 	var user models.Users
 
-	query := "SELECT Id, Nickname, Firstname, Lastname, Email, Gender, Age, Password, Session FROM users WHERE Id = ?"
+	query := "SELECT Id, Nickname, Firstname, Lastname, Email, Gender, Age, Password, SessionExpiry FROM users WHERE Id = ?"
 	err := DB.QueryRow(query, id).
-		Scan(&user.ID, &user.Nickname, &user.Firstname, &user.Lastname, &user.Email, &user.Gender, &user.Age, &user.Password, &user.Session)
+		Scan(&user.ID, &user.Nickname, &user.Firstname, &user.Lastname, &user.Email, &user.Gender, &user.Age, &user.Password, &user.SessionExpiry)
 
 	if err != nil {
 		return nil, err
@@ -72,7 +109,7 @@ func GetUserByID(id int) (*models.Users, error) {
 func GetAllUsers() ([]*models.Users, error) {
 	var users []*models.Users
 
-	query := "SELECT Id, Nickname, Firstname, Lastname, Email, Gender, Age, Password, Session FROM users"
+	query := "SELECT Id, Nickname, Firstname, Lastname, Email, Gender, Age, Password, SessionExpiry FROM users"
 	rows, err := DB.Query(query)
 	if err != nil {
 		return nil, err
@@ -81,7 +118,7 @@ func GetAllUsers() ([]*models.Users, error) {
 
 	for rows.Next() {
 		var user models.Users
-		err := rows.Scan(&user.ID, &user.Nickname, &user.Firstname, &user.Lastname, &user.Email, &user.Gender, &user.Age, &user.Password, &user.Session)
+		err := rows.Scan(&user.ID, &user.Nickname, &user.Firstname, &user.Lastname, &user.Email, &user.Gender, &user.Age, &user.Password, &user.SessionExpiry)
 
 		if err != nil {
 			return nil, err
@@ -95,10 +132,10 @@ func GetAllUsers() ([]*models.Users, error) {
 
 // CreateUser crée un nouvel utilisateur dans la base de données
 func CreateUser(user *models.Users) (int64, error) {
-	query := "INSERT INTO users (Nickname, Firstname, Lastname, Email, Gender, Age, Password, Session) " +
+	query := "INSERT INTO users (Nickname, Firstname, Lastname, Email, Gender, Age, Password, SessionExpiry) " +
 		"VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
 
-	result, err := DB.Exec(query, user.Nickname, user.Firstname, user.Lastname, user.Email, user.Gender, user.Age, user.Password, user.Session)
+	result, err := DB.Exec(query, user.Nickname, user.Firstname, user.Lastname, user.Email, user.Gender, user.Age, user.Password, user.SessionExpiry)
 	if err != nil {
 		return 0, err
 	}
@@ -113,9 +150,9 @@ func CreateUser(user *models.Users) (int64, error) {
 
 // UpdateUser met à jour les informations d'un utilisateur dans la base de données
 func UpdateUser(user *models.Users) error {
-	query := "UPDATE users SET Nickname=?, Firstname=?, Lastname=?, Email=?, Gender=?, Age=?, Password=?, Session=? WHERE Id=?"
+	query := "UPDATE users SET Nickname=?, Firstname=?, Lastname=?, Email=?, Gender=?, Age=?, Password=?, SessionExpiry=? WHERE Id=?"
 
-	_, err := DB.Exec(query, user.Nickname, user.Firstname, user.Lastname, user.Email, user.Gender, user.Age, user.Password, user.Session, user.ID)
+	_, err := DB.Exec(query, user.Nickname, user.Firstname, user.Lastname, user.Email, user.Gender, user.Age, user.Password, user.SessionExpiry, user.ID)
 	return err
 }
 

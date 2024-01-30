@@ -10,6 +10,9 @@ import (
 
 	"forum/database"
 	"forum/models"
+	"time"
+
+	"github.com/gofrs/uuid"
 )
 
 // Fonction utilitaire pour envoyer des réponses JSON standardisées
@@ -42,7 +45,7 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 
 	// Recherche de l'utilisateur dans la base de données
 	err := database.DB.QueryRow("SELECT * FROM users WHERE Email = ?", login.Email).
-		Scan(&user.ID, &user.Nickname, &user.Firstname, &user.Lastname, &user.Email, &user.Gender, &user.Age, &user.Password, &user.Session)
+		Scan(&user.ID, &user.Nickname, &user.Firstname, &user.Lastname, &user.Email, &user.Gender, &user.Age, &user.Password, &user.SessionExpiry)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -65,6 +68,29 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 
 	// Connexion réussie
 	jsonResponse(w, http.StatusOK, "Connexion réussie")
+	fmt.Println("connexion réussie: ")
+
+	// Session de l'utilisateur
+
+	sessionID, err1 := uuid.NewV4()
+	if err1 != nil {
+		// ...
+	}
+
+	// Calcul de l'heure d'expiration de la session (15 minutes plus tard)
+	sessionExpiry := time.Now().Add(15 * time.Minute)
+
+	// Mise à jour de l'identifiant de session et de l'heure d'expiration dans la base de données
+	_, err = database.DB.Exec("UPDATE users SET SessionExpiry = ? WHERE Id = ?", sessionExpiry, user.ID)
+	if err != nil {
+		// ...
+	}
+
+	// Insertion de la session dans la table sessions
+	_, err = database.DB.Exec("INSERT INTO sessions (SessionID, SessionExpiry) VALUES (?, ?)", sessionID.String(), sessionExpiry)
+	if err != nil {
+		// ...
+	}
 }
 
 // Gestionnaire pour l'inscription des utilisateurs
@@ -80,7 +106,7 @@ func HandleRegister(w http.ResponseWriter, r *http.Request) {
 
 	// Vérifier si l'utilisateur existe déjà dans la base de données
 	err := database.DB.QueryRow("SELECT * FROM users WHERE Email = ?", newUser.Email).
-		Scan(&newUser.ID, &newUser.Nickname, &newUser.Firstname, &newUser.Lastname, &newUser.Email, &newUser.Gender, &newUser.Age, &newUser.Password, &newUser.Session)
+		Scan(&newUser.ID, &newUser.Nickname, &newUser.Firstname, &newUser.Lastname, &newUser.Email, &newUser.Gender, &newUser.Age, &newUser.Password, &newUser.SessionExpiry)
 
 	if err == nil {
 		jsonResponse(w, http.StatusConflict, "Cet e-mail est déjà enregistré")
@@ -102,9 +128,18 @@ func HandleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	uui, errr := uuid.NewV4()
+	if errr != nil {
+		fmt.Println(err) // Journalisation de l'erreur pour le débogage
+		jsonResponse(w, http.StatusInternalServerError, "Erreur lors du génération de l'identifiant")
+		fmt.Println("Erreur lors du génération de l'identifiant: ", err)
+		return
+	}
+
+	newUser.ID = uui.String()
 	// Ajouter le nouvel utilisateur à la base de données avec le mot de passe hashé
-	_, err = database.DB.Exec("INSERT INTO users (Nickname, Firstname, Lastname, Email, Age, Gender, Password, Session) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-		newUser.Nickname, newUser.Firstname, newUser.Lastname, newUser.Email, newUser.Age, newUser.Gender, string(hashedPassword), newUser.Session)
+	_, err = database.DB.Exec("INSERT INTO users (ID, Nickname, Firstname, Lastname, Email, Age, Gender, Password, SessionExpiry) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+		newUser.ID, newUser.Nickname, newUser.Firstname, newUser.Lastname, newUser.Email, newUser.Age, newUser.Gender, string(hashedPassword), newUser.SessionExpiry)
 
 	if err != nil {
 		fmt.Println(err) // Journalisation de l'erreur pour le débogage
@@ -116,4 +151,5 @@ func HandleRegister(w http.ResponseWriter, r *http.Request) {
 	// Enregistrement réussi
 	jsonResponse(w, http.StatusCreated, "Enregistrement réussi")
 	fmt.Println("Enregistrement réussi: ")
+
 }

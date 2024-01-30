@@ -3,15 +3,15 @@ package models
 // import "time"
 
 type Users struct {
-	ID               uint      
-	Nickname             string  
-	Firstname              string 
-	Lastname           string    
-	Email            string    
-	Gender            string   
-	Age					int
-	Password         string    
-	Session          string
+	ID            string
+	Nickname      string
+	Firstname     string
+	Lastname      string
+	Email         string
+	Gender        string
+	Age           int
+	Password      string
+	SessionExpiry string
 }
 
 type Register struct {
@@ -20,12 +20,12 @@ type Register struct {
 }
 
 type Post struct {
-	ID           uint       // Identifiant du post
-	UserID       uint       // La clé étrangère faisant référence à l'utilisateur
-	Title        string     // Titre du post
-	PostContent  string     // Contenu du post
-	Image        string     // Image du post
-	Categories   []Category // Les catégories du post
+	ID          uint       // Identifiant du post
+	UserID      uint       // La clé étrangère faisant référence à l'utilisateur
+	Title       string     // Titre du post
+	PostContent string     // Contenu du post
+	Image       string     // Image du post
+	Categories  []Category // Les catégories du post
 }
 
 type Category struct {
