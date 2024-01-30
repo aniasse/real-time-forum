@@ -23,24 +23,25 @@ func jsonResponse(w http.ResponseWriter, status int, message string) {
 }
 
 func jsonResponse2(w http.ResponseWriter, statusCode int, data interface{}) {
-    w.WriteHeader(statusCode)
-    w.Header().Set("Content-Type", "application/json")
-    json.NewEncoder(w).Encode(data)
+	w.WriteHeader(statusCode)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(data)
 }
 
 // Gestionnaire pour la connexion des utilisateurs
 func HandleLogin(w http.ResponseWriter, r *http.Request) {
 	var user models.Users
+	var login models.Register
 
 	// Lire les données JSON de la requête
-	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&login); err != nil {
 		jsonResponse(w, http.StatusBadRequest, "Les données d'identification sont invalides")
-		fmt.Println("Les données d'identification sont invalides: ", err)
+		fmt.Println("Les données d'identification sont invalides: ", http.StatusBadRequest)
 		return
 	}
 
 	// Recherche de l'utilisateur dans la base de données
-	err := database.DB.QueryRow("SELECT * FROM users WHERE Email = ? and Password = ?", user.Email, user.Password).
+	err := database.DB.QueryRow("SELECT * FROM users WHERE Email = ?", login.Email).
 		Scan(&user.ID, &user.Nickname, &user.Firstname, &user.Lastname, &user.Email, &user.Gender, &user.Age, &user.Password, &user.Session)
 
 	if err != nil {
@@ -55,7 +56,8 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Vérification du mot de passe
-	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(user.Password))
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(login.Password))
+	fmt.Println("Vérification du mot de passe: ", user.Password, login.Password)
 	if err != nil {
 		jsonResponse(w, http.StatusUnauthorized, "Identifiants incorrects")
 		return
@@ -102,7 +104,7 @@ func HandleRegister(w http.ResponseWriter, r *http.Request) {
 
 	// Ajouter le nouvel utilisateur à la base de données avec le mot de passe hashé
 	_, err = database.DB.Exec("INSERT INTO users (Nickname, Firstname, Lastname, Email, Age, Gender, Password, Session) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-		newUser.Nickname, newUser.Firstname, newUser.Lastname, newUser.Email, newUser.Age, newUser.Gender, string(hashedPassword), newUser.Session)								
+		newUser.Nickname, newUser.Firstname, newUser.Lastname, newUser.Email, newUser.Age, newUser.Gender, string(hashedPassword), newUser.Session)
 
 	if err != nil {
 		fmt.Println(err) // Journalisation de l'erreur pour le débogage
