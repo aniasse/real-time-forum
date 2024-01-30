@@ -87,7 +87,7 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Insertion de la session dans la table sessions
-	_, err = database.DB.Exec("INSERT INTO sessions (SessionID, SessionExpiry) VALUES (?, ?)", sessionID.String(), sessionExpiry)
+	_, err = database.DB.Exec("INSERT INTO sessions (ID, UserId, SessionExpiry) VALUES (?, ?, ?)", sessionID.String(), user.ID, sessionExpiry)
 	if err != nil {
 		// ...
 	}
