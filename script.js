@@ -49,12 +49,36 @@ function checkValidity() {
 
 // Ajouter un écouteur d'événements au bouton
 document.querySelector('.signup').addEventListener('mouseover', function () {
+    // event.preventDefault();
     if (checkValidity()) {
         button.style.backgroundColor = '#512da8';
         button.style.cursor = 'pointer';
     }else{
         button.style.backgroundColor = 'red';
         button.style.cursor = 'not-allowed';
-        // event.preventDefault();
     }
 });
+
+
+
+// console.log(login);
+
+
+function handleLoginSuccess() {
+    // Supposons que la connexion réussit ici
+    var signin = document.querySelector('.home')
+    var login = document.querySelector('.loginsignup')
+    login.style.display = 'none';
+    signin.style.display = 'block';
+    event.preventDefault();
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+    var signin = document.querySelector('.home');
+    signin.style.display = 'none';
+    console.log(signin);
+});
+
+
+
+document.querySelector('.signin').addEventListener('click', handleLoginSuccess)
