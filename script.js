@@ -64,21 +64,21 @@ document.querySelector('.signup').addEventListener('mouseover', function () {
 // console.log(login);
 
 
-function handleLoginSuccess() {
-    // Supposons que la connexion réussit ici
-    var signin = document.querySelector('.home')
-    var login = document.querySelector('.loginsignup')
-    login.style.display = 'none';
-    signin.style.display = 'block';
-    event.preventDefault();
-}
+// function handleLoginSuccess() {
+//     // Supposons que la connexion réussit ici
+//     var signin = document.querySelector('.home')
+//     var login = document.querySelector('.loginsignup')
+//     login.style.display = 'none';
+//     signin.style.display = 'block';
+//     event.preventDefault();
+// }
 
-document.addEventListener("DOMContentLoaded", function() {
-    var signin = document.querySelector('.home');
-    signin.style.display = 'none';
-    console.log(signin);
-});
+// document.addEventListener("DOMContentLoaded", function() {
+//     var signin = document.querySelector('.home');
+//     signin.style.display = 'none';
+//     console.log(signin);
+// });
 
 
 
-document.querySelector('.signin').addEventListener('click', handleLoginSuccess)
+// document.querySelector('.signin').addEventListener('click', handleLoginSuccess)
