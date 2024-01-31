@@ -72,7 +72,7 @@ body{
 }
 .container input{
     background-color: #eee;
-    border: none;
+    border-width: 0.1px;
     margin: 8px 0;
     padding: 10px 15px;
     font-size: 13px;
