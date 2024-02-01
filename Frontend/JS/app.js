@@ -1,6 +1,13 @@
+import {checkSession} from './tools.js';
+
 const container = document.getElementById('container');
 const registerBtn = document.getElementById('register');
 const loginBtn = document.getElementById('login');
+
+// Appeler la fonction pour vérifier la session au chargement de la page
+document.addEventListener('DOMContentLoaded', () => {
+    checkSession();
+});
 registerBtn.addEventListener('click', () => {
     container.classList.add("active");
 });
