@@ -77,10 +77,15 @@ document.addEventListener('DOMContentLoaded', () => {
         .then(data => {
             console.log('Login success:', data);
             // Création d'un nouveau cookie avec le nom "sessionID" et la valeur de l'identifiant de session
-        document.cookie = `sessionID=${data.SessionID}; expires=${data.SessionExpiry}; path=/`;
+        // Création d'un nouveau cookie avec le nom "sessionData" et la valeur des données de session sérialisées en JSON
+    
+        // Créer un nouveau cookie côté client
+        const sessionIDString = data.userID.toString();
+
+        document.cookie = `sessionID=${sessionIDString}; expires=${new Date(data.sessionExpiry).toUTCString()}; path=/; samesite=None; secure`;
 
         // Redirection vers la page d'accueil ou autre action nécessaire
-        window.location.href = '/homePage';
+        window.location.href = '/homePage/index.html';
         })
         .catch(error => {
             console.error('Login error:', error);

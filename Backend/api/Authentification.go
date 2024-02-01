@@ -30,7 +30,7 @@ func HandleCheckSession(w http.ResponseWriter, r *http.Request) {
 	var sessionExpiry time.Time
 
 	// Recherche de la session dans la base de données
-	err = database.DB.QueryRow("SELECT UserId, SessionExpiry FROM sessions WHERE ID = ? AND SessionExpiry > CURRENT_TIMESTAMP", sessionID).
+	err = database.DB.QueryRow("SELECT UserId, SessionExpiry FROM sessions WHERE UserId = ? AND SessionExpiry > CURRENT_TIMESTAMP", sessionID).
 		Scan(&userID, &sessionExpiry)
 
 	if err != nil {
@@ -112,6 +112,7 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 	response := LoginSuccessResponse{
 		Message:       "Connexion réussie",
 		SessionID:     sessionID.String(),
+		UserID:        user.ID,
 		SessionExpiry: sessionExpiry,
 	}
 

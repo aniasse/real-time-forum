@@ -9,7 +9,8 @@ import (
 // Structure de réponse pour la connexion réussie
 type LoginSuccessResponse struct {
 	Message       string    `json:"message"`
-	SessionID     string    `json:"userID"`
+	SessionID     string    `json:"sessionID"`
+	UserID        string    `json:"userID"`
 	SessionExpiry time.Time `json:"sessionExpiry"`
 }
 
