@@ -14,7 +14,7 @@ export function checkSession() {
         } else {
             // La session n'est pas valide, l'utilisateur doit se connecter
             console.log('Session is not valid, proceed with login');
-            return Promise.reject('Session not valid');
+            return Promise.reject('Session not validd');
         }
     })
     .then(data => {
@@ -22,7 +22,7 @@ export function checkSession() {
         console.log('Session is valid');
         console.log('User ID:', data.userID);
         // Rediriger vers la page d'accueil ou effectuer d'autres actions nécessaires
-        window.location.href = '/home';
+        window.location.href = '/homePage';
     })
     .catch(error => {
         // Gestion des erreurs

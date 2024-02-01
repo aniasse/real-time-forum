@@ -76,6 +76,11 @@ document.addEventListener('DOMContentLoaded', () => {
         .then(response => response.json())
         .then(data => {
             console.log('Login success:', data);
+            // Création d'un nouveau cookie avec le nom "sessionID" et la valeur de l'identifiant de session
+        document.cookie = `sessionID=${data.SessionID}; expires=${data.SessionExpiry}; path=/`;
+
+        // Redirection vers la page d'accueil ou autre action nécessaire
+        window.location.href = '/homePage';
         })
         .catch(error => {
             console.error('Login error:', error);

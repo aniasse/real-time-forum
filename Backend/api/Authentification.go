@@ -15,26 +15,10 @@ import (
 	"github.com/gofrs/uuid"
 )
 
-// Fonction utilitaire pour envoyer des réponses JSON standardisées
-func jsonResponse(w http.ResponseWriter, status int, message string) {
-	w.WriteHeader(status)
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"status":  status,
-		"message": message,
-	})
-}
-
-func jsonResponse2(w http.ResponseWriter, statusCode int, data interface{}) {
-	w.WriteHeader(statusCode)
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(data)
-}
-
 // Gestionnaire pour la vérification de la session
 func HandleCheckSession(w http.ResponseWriter, r *http.Request) {
-	// Extraitz l'ID de session à partir du cookie
-	sessionCookie, err := r.Cookie("session")
+	// Extraire l'ID de session à partir du cookie
+	sessionCookie, err := r.Cookie("sessionID")
 	if err != nil {
 		jsonResponse(w, http.StatusUnauthorized, "Session not found")
 		return
@@ -125,19 +109,14 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		// ...
 	}
-
-	// Création d'un nouveau cookie avec le nom "sessionID" et la valeur de l'identifiant de session
-	cookie := http.Cookie{
-		Name:     "sessionID",
-		Value:    sessionID.String(),
-		Expires:  sessionExpiry,
-		HttpOnly: true, // Le cookie ne sera accessible que via HTTP (pas via JavaScript)
+	response := LoginSuccessResponse{
+		Message:       "Connexion réussie",
+		SessionID:     sessionID.String(),
+		SessionExpiry: sessionExpiry,
 	}
 
-	// Ajout du cookie à la réponse HTTP
-	http.SetCookie(w, &cookie)
-	jsonResponse(w, http.StatusOK, "Connexion réussie")
-	fmt.Println("connexion réussie: ")
+	jsonResponse2(w, http.StatusOK, response)
+
 }
 
 // Gestionnaire pour l'inscription des utilisateurs
