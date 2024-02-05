@@ -673,13 +673,13 @@ func extractIDFromPath(path string) int {
 }
 
 func CheckActiveSession(r *http.Request) (*models.Users, bool) {
-	var user *models.Users 
+	var user *models.Users
 
 	if cookie, err := r.Cookie("sessionId"); err != nil {
-			return nil, false  
-		}else{
+		return nil, false
+	} else {
 		user, err = database.GetUserByID(cookie.Value)
-		
+
 		if err != nil {
 			return nil, false
 		}
@@ -699,13 +699,13 @@ func handleActiveSession(w http.ResponseWriter, r *http.Request) {
 
 	user, exist = CheckActiveSession(r)
 
-	if (user == nil) {
+	if user == nil {
 		exist = false
 	}
 
 	res = Response{
-		Exist: exist,
-		HomePage: Home,
+		Exist:        exist,
+		HomePage:     Home,
 		SignUpSignIn: SignUpIn,
 	}
 
@@ -719,33 +719,31 @@ func handleActiveSession(w http.ResponseWriter, r *http.Request) {
 	w.Write(jsonRes)
 }
 
-	// if cookie, err := r.Cookie("sessionId"); err != nil {
-	// 	exist = false
-	// 	res = Response{
-	// 		Exist:        exist,
-	// 		HomePage:     ``,
-	// 		SignUpSignIn: SignUpIn,
-	// 	}
-	// 	jsonRes, err := json.Marshal(res)
-	// 	if err != nil {
-	// 		http.Error(w, err.Error(), http.StatusInternalServerError)
-	// 		return
-	// 	}
+// if cookie, err := r.Cookie("sessionId"); err != nil {
+// 	exist = false
+// 	res = Response{
+// 		Exist:        exist,
+// 		HomePage:     ``,
+// 		SignUpSignIn: SignUpIn,
+// 	}
+// 	jsonRes, err := json.Marshal(res)
+// 	if err != nil {
+// 		http.Error(w, err.Error(), http.StatusInternalServerError)
+// 		return
+// 	}
 
-	// 	w.Header().Set("Content-Type", "application/json")
-	// 	w.Write(jsonRes)
-	// 	return
+// 	w.Header().Set("Content-Type", "application/json")
+// 	w.Write(jsonRes)
+// 	return
 
-	// } else {
-	// 	val := cookie.Value
-	// 	user, err = database.GetUserByID(val)
-	// 	if user != nil && err == nil {
-	// 		exist = true
-	// 		res.Exist = exist
-	// 		res.HomePage = Home
-	// 		res.SignUpSignIn = SignUpIn
-	// 	}
+// } else {
+// 	val := cookie.Value
+// 	user, err = database.GetUserByID(val)
+// 	if user != nil && err == nil {
+// 		exist = true
+// 		res.Exist = exist
+// 		res.HomePage = Home
+// 		res.SignUpSignIn = SignUpIn
+// 	}
 
-	// }
-
-}
+// }

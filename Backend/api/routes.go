@@ -3,12 +3,15 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 )
 
 func enableCORS(w http.ResponseWriter) {
+	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "http://127.0.0.1:5500")
 	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+	w.Header().Set("Access-Control-Allow-Credentials", "true")
 }
 
 func corsMiddleware(next http.Handler) http.Handler {
@@ -34,6 +37,7 @@ func Router() {
 	server.HandleFunc("/api/users/", handleUserRequest)
 	server.HandleFunc("/api/login", HandleLogin)
 	server.HandleFunc("/api/register", HandleRegister)
+	server.HandleFunc("/api/checksession", HandleCheckSession)
 
 	fmt.Println("Server started on port 8080")
 
@@ -43,7 +47,8 @@ func Router() {
 
 func handleUserRequest(w http.ResponseWriter, r *http.Request) {
 	// Extraire l'ID du chemin de l'URL
-	id := extractIDFromPath(r.URL.Path)
+	idInt := extractIDFromPath(r.URL.Path)
+	id := strconv.Itoa(idInt)
 
 	switch r.Method {
 	case http.MethodGet:

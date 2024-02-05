@@ -15,24 +15,45 @@ import (
 	"github.com/gofrs/uuid"
 )
 
-// Fonction utilitaire pour envoyer des réponses JSON standardisées
-func jsonResponse(w http.ResponseWriter, status int, message string) {
-	w.WriteHeader(status)
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"status":  status,
-		"message": message,
-	})
-}
+// Gestionnaire pour la vérification de la session
+func HandleCheckSession(w http.ResponseWriter, r *http.Request) {
+	// Extraire l'ID de session à partir du cookie
+	sessionCookie, err := r.Cookie("sessionID")
+	if err != nil {
+		jsonResponse(w, http.StatusUnauthorized, "Session not found")
+		return
+	}
 
-func jsonResponse2(w http.ResponseWriter, statusCode int, data interface{}) {
-	w.WriteHeader(statusCode)
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(data)
+	// Récupérez l'ID de session à partir du cookie
+	sessionID := sessionCookie.Value
+	var userID string
+	var sessionExpiry time.Time
+
+	// Recherche de la session dans la base de données
+	err = database.DB.QueryRow("SELECT UserId, SessionExpiry FROM sessions WHERE UserId = ? AND SessionExpiry > CURRENT_TIMESTAMP", sessionID).
+		Scan(&userID, &sessionExpiry)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			// Session non trouvée ou expirée
+			jsonResponse(w, http.StatusInternalServerError, "Error fetching user ID")
+		}
+		// Erreur lors de la recherche de la session
+		jsonResponse(w, http.StatusInternalServerError, "Error fetching user ID")
+	}
+
+	// Session trouvée et valide
+	// La session est valide
+	jsonResponse2(w, http.StatusOK, map[string]interface{}{
+		"status":  http.StatusOK,
+		"message": "Session is valid",
+		"userID":  userID,
+	})
 }
 
 // Gestionnaire pour la connexion des utilisateurs
 func HandleLogin(w http.ResponseWriter, r *http.Request) {
+
 	var user models.Users
 	var login models.Register
 
@@ -63,12 +84,9 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Vérification du mot de passe: ", user.Password, login.Password)
 	if err != nil {
 		jsonResponse(w, http.StatusUnauthorized, "Identifiants incorrects")
+		fmt.Println("Mot de passe incorrect")
 		return
 	}
-
-	// Connexion réussie
-	jsonResponse(w, http.StatusOK, "Connexion réussie")
-	fmt.Println("connexion réussie: ")
 
 	// Session de l'utilisateur
 
@@ -91,6 +109,15 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		// ...
 	}
+	response := LoginSuccessResponse{
+		Message:       "Connexion réussie",
+		SessionID:     sessionID.String(),
+		UserID:        user.ID,
+		SessionExpiry: sessionExpiry,
+	}
+
+	jsonResponse2(w, http.StatusOK, response)
+
 }
 
 // Gestionnaire pour l'inscription des utilisateurs
