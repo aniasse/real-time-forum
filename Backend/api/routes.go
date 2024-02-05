@@ -30,6 +30,7 @@ func Router() {
 	http.Handle("/", corsMiddleware(server))
 
 	// Endpoints
+	server.HandleFunc("/api/activeSession", handleActiveSession)
 	server.HandleFunc("/api/users/", handleUserRequest)
 	server.HandleFunc("/api/login", HandleLogin)
 	server.HandleFunc("/api/register", HandleRegister)

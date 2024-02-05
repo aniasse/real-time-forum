@@ -91,7 +91,7 @@ func createTables(db *sql.DB) {
 }
 
 // GetUserByID récupère un utilisateur par son ID depuis la base de données
-func GetUserByID(id int) (*models.Users, error) {
+func GetUserByID(id string) (*models.Users, error) {
 	var user models.Users
 
 	query := "SELECT Id, Nickname, Firstname, Lastname, Email, Gender, Age, Password, SessionExpiry FROM users WHERE Id = ?"
@@ -157,8 +157,30 @@ func UpdateUser(user *models.Users) error {
 }
 
 // DeleteUser supprime un utilisateur de la base de données
-func DeleteUser(id int) error {
+func DeleteUser(id string) error {
 	query := "DELETE FROM users WHERE Id = ?"
 	_, err := DB.Exec(query, id)
 	return err
 }
+
+// func getUserByID(userID string) (*models.Users, error) {
+// 	var user models.Users
+// 	query := "SELECT * FROM users WHERE ID = ?"
+// 	err := DB.QueryRow(query, userID).Scan(
+// 		&user.ID,
+// 		&user.Nickname,
+// 		&user.Firstname,
+// 		&user.Lastname,
+// 		&user.Email,
+// 		&user.Gender,
+// 		&user.Age,
+// 		&user.Password,
+// 		&user.SessionExpiry,
+// 	)
+
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	return &user, nil
+// }
