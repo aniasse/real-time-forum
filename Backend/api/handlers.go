@@ -496,7 +496,7 @@ var Home = `<html lang="en">
         </div>
     </main>
 
-    <script src="./JS/index.js"></script>
+    <script src="./JS/home.js"></script>
 </body>
 
 </html>`
@@ -558,7 +558,7 @@ var SignUpIn = `<html lang="en">
 			</div>
 		</div>
 	</div>
-	<script src="./JS/app.js"></script>
+	<script src="./JS/Sign.js"></script>
 </body>
 </html>`
 
@@ -577,7 +577,7 @@ var ErrorPage = `<html lang="en">
    <p class="Description">
     {{ .Message }}
    </p>
-    <button><a href="/">Go Home</a></button>
+    <button><a>Go Home</a></button>
   </div>
 </body>
 </html>`
@@ -692,6 +692,7 @@ func handleActiveSession(w http.ResponseWriter, r *http.Request) {
 	var user *models.Users
 	var exist bool
 
+	fmt.Println("session")
 	if r.Method != http.MethodPost {
 		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
 		return

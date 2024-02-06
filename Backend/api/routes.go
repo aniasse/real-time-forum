@@ -32,17 +32,15 @@ func Router() {
 	// Ajouter le middleware CORS
 	http.Handle("/", corsMiddleware(server))
 
+	// Servir les fichiers statiques du dossier "Frontend"
+	server.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./Frontend"))))
+
 	// Endpoints
 	server.HandleFunc("/api/activeSession", handleActiveSession)
 	server.HandleFunc("/api/users/", handleUserRequest)
 	server.HandleFunc("/api/login", HandleLogin)
 	server.HandleFunc("/api/register", HandleRegister)
-	server.HandleFunc("/api/checksession", HandleCheckSession)
-
-	fmt.Println("Server started on port 8080")
-
-	// Serveur sur le port 8080
-	http.ListenAndServe(":8080", nil)
+	// server.HandleFunc("/api/checksession", HandleCheckSession)
 }
 
 func handleUserRequest(w http.ResponseWriter, r *http.Request) {
