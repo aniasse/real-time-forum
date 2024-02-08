@@ -8,7 +8,7 @@ import (
 
 func enableCORS(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "http://127.0.0.1:5500")
+	// w.Header().Set("Access-Control-Allow-Origin", "http://127.0.0.1:5500")
 	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 	w.Header().Set("Access-Control-Allow-Credentials", "true")
@@ -27,19 +27,19 @@ func corsMiddleware(next http.Handler) http.Handler {
 
 func Router() {
 	// Serveur HTTP
-	server := http.NewServeMux()
+	// server := http.NewServeMux()
 
 	// Ajouter le middleware CORS
-	http.Handle("/", corsMiddleware(server))
+	// http.Handle("/", corsMiddleware(server))
 
 	// Servir les fichiers statiques du dossier "Frontend"
-	server.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./Frontend"))))
 
 	// Endpoints
-	server.HandleFunc("/api/activeSession", handleActiveSession)
-	server.HandleFunc("/api/users/", handleUserRequest)
-	server.HandleFunc("/api/login", HandleLogin)
-	server.HandleFunc("/api/register", HandleRegister)
+	http.HandleFunc("/", handleFirstPage)
+	http.HandleFunc("/api/activeSession", handleActiveSession)
+	http.HandleFunc("/api/users/", handleUserRequest)
+	http.HandleFunc("/api/login", HandleLogin)
+	http.HandleFunc("/api/register", HandleRegister)
 	// server.HandleFunc("/api/checksession", HandleCheckSession)
 }
 

@@ -1,6 +1,9 @@
 const container = document.getElementById('container');
 const registerBtn = document.getElementById('register');
 const loginBtn = document.getElementById('login');
+const loginForm = document.getElementById('loginForm');
+const registerForm = document.getElementById('registerForm');
+
 
 registerBtn.addEventListener('click', () => {
     container.classList.add("active");
@@ -20,7 +23,7 @@ const regexMap = {
 };
 
 // Récupérer tous les champs du formulaire
-const button =  document.querySelector('.signup');
+const button = document.querySelector('.signup');
 const inputs = document.querySelectorAll('input');
 
 // Pour chaque champ, ajouter un écouteur d'événements
@@ -41,95 +44,99 @@ function checkValidity() {
     const greenInputs = Array.from(inputs).filter((input) => input.style.borderColor === 'green');
     return greenInputs.length === 6;
 }
+
 // Ajouter un écouteur d'événements au bouton
-document.querySelector('.signup').addEventListener('mouseover', function () {
+button.addEventListener('mouseover', function () {
     if (checkValidity()) {
         button.style.backgroundColor = '#512da8';
         button.style.cursor = 'pointer';
-    }else{
+        button.disabled = false
+    } else {
         button.style.backgroundColor = 'red';
         button.style.cursor = 'not-allowed';
+        button.disabled = true
         // event.preventDefault();
     }
 });
 
-document.addEventListener('DOMContentLoaded', () => {
-    const loginForm = document.getElementById('loginForm');
-    const registerForm = document.getElementById('registerForm');
-
-    loginForm.addEventListener('submit', (event) => {
-        event.preventDefault();
-        const email = document.getElementById('loginMail').value;
-        const password = document.getElementById('loginPassword').value;
-        console.log(email, password);
-        //requête API pour le login
-        fetch('http://localhost:8080/api/login', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ Email: email, Password: password }),
+loginForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const email = document.getElementById('loginMail').value;
+    const password = document.getElementById('loginPassword').value;
+    console.log(email, password);
+    //requête API pour le login
+    fetch('http://localhost:8080/api/login', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ Email: email, Password: password }),
+    })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Login success:', data);
         })
-            .then(response => response.json())
-            .then(data => {
-                console.log('Login success:', data);
-            })
-            .catch(error => {
-                console.error('Login error:', error);
-            });
-    });
-
-    registerForm.addEventListener('submit', (event) => {
-        event.preventDefault();
-
-        let div = document.createElement('div');
-        div.classList = 'fullScreenDiv';
-        let loader = document.createElement('div')
-        loader.classList = 'loader'
-        div.appendChild(loader)
-        document.body.appendChild(div);
-
-        setTimeout(()=> {
-            document.body.removeChild(div);
-            if (!validateForm()) return
-        }, 2000);
-        
-
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
-        const nickname = document.getElementById('nickname').value;
-        const firstname = document.getElementById('firstname').value;
-        const lastname = document.getElementById('lastname').value;
-        const age = document.getElementById('age').value;
-        const newAge = parseInt(age, 10);
-        const gender = document.getElementById('gender').value;
-
-        console.log(email, password);
-        //requête API pour l'inscription
-        fetch('http://localhost:8080/api/register', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ Email: email, Password: password, Nickname: nickname, Firstname: firstname, Lastname: lastname, Age: newAge, Gender: gender }),
-        })
-            .then(response => response.json())
-            .then(data => {
-                console.log('Register success:', data);
-            })
-            .catch(error => {
-                console.error('Register error:', error);
-            });
-    });
+        .catch(error => {
+            console.error('Login error:', error);
+        });
 });
 
+registerForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+
+    let div = document.createElement('div');
+    div.classList = 'fullScreenDiv';
+    let loader = document.createElement('div')
+    loader.classList = 'loader'
+    div.appendChild(loader)
+    document.body.appendChild(div);
+
+    setTimeout(() => {
+        document.body.removeChild(div);
+        if (!validateForm()) return
+        printRegistered()
+    }, 1000);
+
+
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    const nickname = document.getElementById('nickname').value;
+    const firstname = document.getElementById('firstname').value;
+    const lastname = document.getElementById('lastname').value;
+    const age = document.getElementById('age').value;
+    const newAge = parseInt(age, 10);
+    const gender = document.getElementById('gender').value;
+
+    console.log(email, password);
+    //requête API pour l'inscription
+    fetch('http://localhost:8080/api/register', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ Email: email, Password: password, Nickname: nickname, Firstname: firstname, Lastname: lastname, Age: newAge, Gender: gender }),
+    })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Register success:', data);
+        })
+        .catch(error => {
+            console.error('Register error:', error);
+        });
+});
+// });
+
 const printRegistered = () => {
-    setTimeout(function() {
+    setTimeout(function () {
         document.getElementById('successMessage').style.visibility = 'visible';
-        setTimeout(()=> {
+        setTimeout(() => {
             document.getElementById('successMessage').style.visibility = 'hidden';
-        },1500)
-    }, 1000); 
+            container.classList.remove("active");
+            inputs.forEach(input => {
+                input.value = '';
+            })
+        }, 1000)
+    }, 0);
 }
 
 function validateForm() {

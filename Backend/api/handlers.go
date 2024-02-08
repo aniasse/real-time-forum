@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"net/http"
 	"strconv"
 	"strings"
@@ -28,7 +29,7 @@ var Home = `<html lang="en">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://unicons.iconscout.com/release/v2.1.6/css/unicons.css" />
-    <link rel="stylesheet" href="./CSS/styles.css" />
+    <link rel="stylesheet" href="/static/CSS/styles.css">
 </head>
 
 <body>
@@ -505,7 +506,7 @@ var SignUpIn = `<html lang="en">
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-	<link rel="stylesheet" href="./CSS/styles.css">
+	<link rel="stylesheet" href="/static/CSS/styles.css">
 	<title>Real Time Forum</title>
 </head>
 <body>
@@ -558,7 +559,7 @@ var SignUpIn = `<html lang="en">
 			</div>
 		</div>
 	</div>
-	<script src="./JS/Sign.js"></script>
+	<script src="/static/JS/sign.js"></script>
 </body>
 </html>`
 
@@ -687,37 +688,86 @@ func CheckActiveSession(r *http.Request) (*models.Users, bool) {
 	return user, true
 }
 
+func handleFirstPage(w http.ResponseWriter, r *http.Request) {
+	err := renderTemplateWithLayout(w)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		fmt.Println(err)
+		return
+	}
+}
+
 func handleActiveSession(w http.ResponseWriter, r *http.Request) {
 	var res Response
 	var user *models.Users
 	var exist bool
 
-	fmt.Println("session")
 	if r.Method != http.MethodPost {
 		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
 		return
+	} else {
+		user, exist = CheckActiveSession(r)
+
+		if user == nil {
+			exist = false
+		}
+
+		res = Response{
+			Exist:        exist,
+			HomePage:     Home,
+			SignUpSignIn: SignUpIn,
+		}
+
+		// Définissez le type de contenu de la réponse comme JSON
+		w.Header().Set("Content-Type", "application/json")
+
+		// Écrire les données JSON dans le corps de la réponse
+
+		jsonData, err := json.Marshal(res)
+
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Write(jsonData)
 	}
+}
 
-	user, exist = CheckActiveSession(r)
-
-	if user == nil {
-		exist = false
-	}
-
-	res = Response{
-		Exist:        exist,
-		HomePage:     Home,
-		SignUpSignIn: SignUpIn,
-	}
-
-	jsonRes, err := json.Marshal(res)
+func renderTemplateWithLayout(w http.ResponseWriter) error {
+	w.WriteHeader(200)
+	page, err := template.ParseFiles("index.html")
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		fmt.Println(err)
+		return err
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(jsonRes)
+	return page.Execute(w, "")
+}
+
+// func renderTemplateWithLoyout(w http.ResponseWriter, r *http.Request) error {
+// 	w.WriteHeader(200)
+// 	page, err := template.ParseFiles("../Frontend/index.html")
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	return page.ExecuteTemplate(w, "", "")
+// }
+
+func errorPage(w http.ResponseWriter, i int) error {
+	DataError := struct {
+		Code    string
+		Message string
+	}{
+		Code:    strconv.Itoa(i),
+		Message: http.StatusText(i),
+	}
+	page, err := template.ParseFiles("Frontend/index.html")
+	if err != nil {
+		return err
+	}
+	w.WriteHeader(i)
+	return page.Execute(w, DataError)
 }
 
 // if cookie, err := r.Cookie("sessionId"); err != nil {
