@@ -35,7 +35,7 @@ const seeComs = document.querySelectorAll('.comment')
 const coms = document.querySelectorAll('.comments')
 
 create.addEventListener("click", () => {
-    if (createPost.style.display === 'none' || createPost.style.display === '' ) createPost.style.display = 'flex'
+    if (createPost.style.display === 'none' || createPost.style.display === '') createPost.style.display = 'flex'
     else createPost.style.display = 'none';
 })
 
@@ -65,3 +65,60 @@ messages.forEach((mes, i) => {
         else discus[i].style.display = 'none';
     })
 })
+
+
+//Responsivity
+const homeIcon = document.querySelector('.first');
+const notifIcon = document.querySelector('.thirth');
+const smsIcon = document.querySelector('.second');
+
+const notifs = document.querySelector('.notifs');
+const posts = document.querySelector('.posts');
+const smss = document.querySelector('.messages');
+
+
+
+const makeResponsive = (selectedSection) => {
+    // Masquer tous les éléments par défaut
+    notifs.style.display = 'none';
+    posts.style.display = 'none';
+    smss.style.display = 'none';
+
+    // Afficher la section sélectionnée
+    selectedSection.style.display = 'flex';
+    selectedSection.style.width = '100%';
+}
+
+notifIcon.addEventListener('click', () => {
+    makeResponsive(notifs);
+});
+
+homeIcon.addEventListener('click', () => {
+    makeResponsive(posts);
+});
+
+smsIcon.addEventListener('click', () => {
+    makeResponsive(smss);
+});
+
+
+// Fonction pour gérer la responsivité
+const handleResponsivity = () => {
+    const screenWidth = window.innerWidth;
+
+    if (screenWidth > 920) {
+        notifs.style.display = 'flex';
+        posts.style.display = 'flex';
+        smss.style.display = 'flex';
+    } else {
+        notifs.style.display = 'none';
+        posts.style.display = 'flex';
+        smss.style.display = 'none';
+    }
+};
+
+// Appel initial pour gérer la responsivité au chargement de la page
+handleResponsivity();
+
+// Écouteur d'événements pour la taille de l'écran
+window.addEventListener('resize', handleResponsivity);

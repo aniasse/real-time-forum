@@ -184,7 +184,6 @@
 
 .homepage .content .title {
     background-color: white;
-    position: fixed;
     padding-left: 1%;
     padding-right: 1%;
     border-radius: 1px;
@@ -631,3 +630,4 @@
         display: flex;
     }
 }
+  
