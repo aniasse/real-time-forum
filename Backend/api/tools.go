@@ -14,6 +14,7 @@ type LoginSuccessResponse struct {
 	UserID        string    `json:"userID"`
 	SessionExpiry time.Time `json:"sessionExpiry"`
 	HomePage      string    `json:"homePage"`
+	HomeHead      string    `json:"homeHead"`
 }
 
 // Fonction utilitaire pour envoyer des réponses JSON standardisées

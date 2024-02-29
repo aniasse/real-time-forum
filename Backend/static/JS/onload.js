@@ -1,3 +1,4 @@
+//Charger le fichier js de la page
 function loadScript(scriptUrl) {
 
     const scripts = document.querySelectorAll('script');
@@ -15,13 +16,43 @@ function loadScript(scriptUrl) {
     document.head.appendChild(script);
 }
 
+//Recuperer le cookie
+function getCookieValue(cookieName) {
+    var name = cookieName + "=";
+    var decodedCookie = decodeURIComponent(document.cookie);
+    var cookieArray = decodedCookie.split(';');
+    for(var i = 0; i < cookieArray.length; i++) {
+        var cookie = cookieArray[i];
+        while (cookie.charAt(0) == ' ') {
+            cookie = cookie.substring(1);
+        }
+        if (cookie.indexOf(name) == 0) {
+            var cookieValue = cookie.substring(name.length, cookie.length);
+            // Vérifier si le cookie est expiré
+            var cookieExpires = cookieValue.split(';')[1];
+            if (!cookieExpires || new Date(cookieExpires.trim()) > new Date()) {
+                return cookieValue.split(';')[0]; // Retourne la valeur du cookie
+            } else {
+                // Cookie expiré, donc supprimer le cookie
+                document.cookie = cookieName + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+                return ""; // Retourne une chaîne vide si le cookie est expiré
+            }
+        }
+    }
+    return ""; // Retourne une chaîne vide si le cookie n'est pas trouvé
+}
+
+//Au chargement
 document.addEventListener('DOMContentLoaded', () => {
+
+    const cookieValue = getCookieValue("sessionID")
 
     fetch('/api/activeSession', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
+        body: JSON.stringify({ cookieValue: cookieValue }),
     })
         .then(response => response.json())
         .then(data => {
@@ -40,4 +71,6 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('Error:', error);
         });
 });
+
+
 

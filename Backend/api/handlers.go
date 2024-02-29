@@ -23,6 +23,10 @@ type Response struct {
 	SignUpSignIn string `json:"signUpsignIn"`
 }
 
+type CookieData struct {
+	CookieValue string `json:"cookieValue"`
+}
+
 // var HomeHead = `<head>
 // <meta charset="UTF-8">
 // <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -48,6 +52,17 @@ type Response struct {
 //     <title>Real Time Forum</title>
 // </head>
 //    <script src="/static/JS/sign.js"></script>
+
+var HomeHead = `<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="https://unicons.iconscout.com/release/v2.1.6/css/unicons.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+<link href='https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css' rel='stylesheet'>
+<script src='https://kit.fontawesome.com/a076d05399.js' crossorigin='anonymous'></script>
+<link rel="stylesheet" href="/static/CSS/home.css">
+<title>Real Time Forum</title>
+</head>`
 
 var Home = `<body>
     <header>
@@ -776,11 +791,14 @@ func extractIDFromPath(path string) int {
 
 func CheckActiveSession(r *http.Request) (*models.Users, bool) {
 	var user *models.Users
+	var data CookieData
 
-	if cookie, err := r.Cookie("sessionId"); err != nil {
+	err := json.NewDecoder(r.Body).Decode(&data)
+	if err != nil {
 		return nil, false
 	} else {
-		user, err = database.GetUserByID(cookie.Value)
+		cookie := data.CookieValue
+		user, err = database.GetUserByID(cookie)
 
 		if err != nil {
 			return nil, false
@@ -902,6 +920,7 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 		UserID:        user.ID,
 		SessionExpiry: sessionExpiry,
 		HomePage:      Home,
+		HomeHead:      HomeHead,
 	}
 
 	jsonResponse2(w, http.StatusOK, response)
