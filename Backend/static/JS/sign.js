@@ -87,6 +87,20 @@ var Head = `<head>
 <title>Real Time Forum</title>
 </head>`
 
+function deleteCookie(name) {
+    document.cookie = name + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+}
+
+function createCookie(name, value, exp) {
+    var expiration = "";
+    if (exp) {
+        var date = new Date();
+        date.setTime(date.getTime() + (exp * 24 * 60 * 60 * 1000));
+        expiration = "; expires=" + date.toUTCString();
+    }
+    document.cookie = name + "=" + value + expiration + "; path=/";
+}
+
 //Login
 loginForm.addEventListener('submit', async (event) => {
     event.preventDefault();
@@ -104,13 +118,16 @@ loginForm.addEventListener('submit', async (event) => {
         });
 
         const data = await response.json();
-        console.log('Login success:', data);
+        if (data.Status === 201) {
+            setTimeout(() => {
+                addingHtmlClass();
+                addingHead();
+                addingBody(data);
+            }, 1500);
+            createCookie("sessionID", data.ID, 7)
+            return
+        }
         messageToPrint(data);
-        setTimeout(() => {
-            addingHtmlClass();
-            addingHead();
-            addingBody(data);
-        }, 1500);
 
     } catch (error) {
         console.error('Login error:', error);

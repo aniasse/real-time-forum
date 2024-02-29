@@ -630,6 +630,7 @@ var SignUpIn = `
 <body>
 	<!-- <div class="loader"></div> -->
 	<div class="container" id="container">
+    <div id="Message" class="Message"></div>
 		<div class="form-container sign-up">
 			<form id="registerForm">
 				<div class="title">Create Account</div>
@@ -649,8 +650,6 @@ var SignUpIn = `
 				<input id="password" type="password" name="password" placeholder="Password">
 				<button class="signup" disabled>Sign Up</button>
 			</form>
-			<div id="Message" class="Message">
-			</div>
 		</div>
 		<div class="form-container sign-in">
 			<form id="loginForm">
