@@ -4,6 +4,7 @@ const nav = document.querySelector("nav"),
 toggleBtn.addEventListener("click", () => {
     nav.classList.toggle("open");
 });
+
 // js code to make draggable nav
 function onDrag({ movementY }) { //movementY gets mouse vertical value
     const navStyle = window.getComputedStyle(nav), //getting all css style of nav
@@ -15,6 +16,7 @@ function onDrag({ movementY }) { //movementY gets mouse vertical value
         nav.style.top = `${windHeight - navHeight}px`;
     }
 }
+
 //this function will call when user click mouse's button and  move mouse on nav
 nav.addEventListener("mousedown", () => {
     nav.addEventListener("mousemove", onDrag);
@@ -51,13 +53,8 @@ seeComs.forEach((seeCom, i) => {
 });
 
 //Messages
-
 const messages = document.querySelectorAll('.messages .usr')
-
 const discus = document.querySelectorAll('.discus')
-
-console.log(messages);
-console.log(discus);
 
 messages.forEach((mes, i) => {
     mes.addEventListener('click', () => {
@@ -75,8 +72,6 @@ const smsIcon = document.querySelector('.second');
 const notifs = document.querySelector('.notifs');
 const posts = document.querySelector('.posts');
 const smss = document.querySelector('.messages');
-
-
 
 const makeResponsive = (selectedSection) => {
     // Masquer tous les éléments par défaut
@@ -108,12 +103,16 @@ const handleResponsivity = () => {
 
     if (screenWidth > 920) {
         notifs.style.display = 'flex';
+        notifs.style.height = '50vh'
         posts.style.display = 'flex';
         smss.style.display = 'flex';
+        smss.style.height = '55vh'
     } else {
         notifs.style.display = 'none';
+        notifs.style.height = '80vh'
         posts.style.display = 'flex';
         smss.style.display = 'none';
+        smss.style.height = '80vh'
     }
 };
 

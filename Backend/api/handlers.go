@@ -1,15 +1,20 @@
 package api
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"html/template"
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"forum/database"
 	"forum/models"
+
+	"github.com/gofrs/uuid"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type Response struct {
@@ -18,497 +23,595 @@ type Response struct {
 	SignUpSignIn string `json:"signUpsignIn"`
 }
 
-var Home = `<html lang="en">
+// var HomeHead = `<head>
+// <meta charset="UTF-8">
+// <meta name="viewport" content="width=device-width, initial-scale=1.0">
+// <link rel="stylesheet" href="https://unicons.iconscout.com/release/v2.1.6/css/unicons.css" />
+// <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+// <link href='https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css' rel='stylesheet'>
+// <script src='https://kit.fontawesome.com/a076d05399.js' crossorigin='anonymous'></script>
+// <link rel="stylesheet" href="/static/CSS/home.css">
+// <title>Real Time Forum</title>
+// </head>`
 
-<head>
-    <meta charset="UTF-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width= , initial-scale=1.0" />
-    <title>Real Time Forum</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="https://unicons.iconscout.com/release/v2.1.6/css/unicons.css" />
-    <link rel="stylesheet" href="/static/CSS/styles.css">
-</head>
+//Html
+//<!DOCTYPE html>
+//<html class="homepage" lang="en">
+// <head>
+//     <meta charset="UTF-8">
+//     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+//     <link rel="stylesheet" href="https://unicons.iconscout.com/release/v2.1.6/css/unicons.css" />
+//     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+//     <link href='https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css' rel='stylesheet'>
+//     <script src='https://kit.fontawesome.com/a076d05399.js' crossorigin='anonymous'></script>
+// 	<link rel="stylesheet" href="/static/CSS/home.css">
+//     <title>Real Time Forum</title>
+// </head>
+//    <script src="/static/JS/sign.js"></script>
 
-<body>
-    <nav>
-        <div class="container">
-            <h2 class="logo">Real Time Forum</h2>
+var Home = `<body>
+    <header>
+        <h2 class="logo">Real Time Forum</h2>
+        <nav>
+            <div class="nav-content">
+                <div class="toggle-btn">
+                    <i class='bx bx-plus'></i>
+                </div>
+                <span class="first">
+                    <a href=""><i class='bx bxs-home'></i></a>
+                </span>
+                <span class="second">
+                    <a href=""><i class='bx bxs-message-alt'></i></a>
+                </span>
+                <span class="thirth">
+                    <a href=""><i class='bx bxs-bell'></i></a>
+                </span>
+            </div>
+        </nav>
+        <div class="navigation">
+            <a class="button" href="">
+                <img src="./static/images/user.png" alt="logout">
+                <div class="logout">LOGOUT</div>
+            </a>
         </div>
-    </nav>
-
-    <main>
-        <div class="container">
-            <div class="left">
-                <a class="profile">
-                    <div class="profile-pic">
-                        <img src="./images/profile-8.jpg">
+    </header>
+    <div id="Message" class="Message"></div>
+    <div class="content">
+        <div class="notifs">
+            <div class="title">
+                <span>
+                    <h5>Notifications</h5>
+                </span>
+            </div>
+            <div class="notif">
+                <div class="profil-pic">
+                    <img src="./static/images/user.png" alt="">
+                </div>
+                <div class="notif-body">
+                    <b>Abigail Willey</b> Send you a message
+                    <small class="text-muted">2 DAYS AGO</small>
+                </div>
+            </div>
+            <div class="notif">
+                <div class="profil-pic">
+                    <img src="./static/images/user.png" alt="">
+                </div>
+                <div class="notif-body">
+                    <b>Abigail Willey</b> Send you a message
+                    <small class="text-muted">2 DAYS AGO</small>
+                </div>
+            </div>
+            <div class="notif">
+                <div class="profil-pic">
+                    <img src="./static/images/user.png" alt="">
+                </div>
+                <div class="notif-body">
+                    <b>Abigail</b> Send you a message
+                    <small class="text-muted">2 DAYS AGO</small>
+                </div>
+            </div>
+            <div class="notif">
+                <div class="profil-pic">
+                    <img src="./static/images/user.png" alt="">
+                </div>
+                <div class="notif-body">
+                    <b>Abigail Willey</b> Send you a message
+                    <small class="text-muted">2 DAYS AGO</small>
+                </div>
+            </div>
+            <div class="notif">
+                <div class="profil-pic">
+                    <img src="./static/images/user.png" alt="">
+                </div>
+                <div class="notif-body">
+                    <b>Abigail Willey</b> Send you a message
+                    <small class="text-muted">2 DAYS AGO</small>
+                </div>
+            </div>
+            <div class="notif">
+                <div class="profil-pic">
+                    <img src="./static/images/user.png" alt="">
+                </div>
+                <div class="notif-body">
+                    <b>Abigail Willey</b> Send you a message
+                    <small class="text-muted">2 DAYS AGO</small>
+                </div>
+            </div>
+            <div class="notif">
+                <div class="profil-pic">
+                    <img src="./static/images/user.png" alt="">
+                </div>
+                <div class="notif-body">
+                    <b>Abigail Willey</b> Send you a message
+                    <small class="text-muted">2 DAYS AGO</small>
+                </div>
+            </div>
+        </div>
+        <div class="posts">
+            <div class="create">
+                <div class="user">
+                    <div class="profil-pic">
+                        <img src="./static/images/user.png" alt="">
                     </div>
-                    <div class="handle">
+                    <h6>Xander</h6>
+                </div>
+                <div></div>
+                <button class="button-create">Create</button>
+            </div>
+            <div class="createpost">
+                <div class="close">
+                    <img src="./static/images/close.png" alt="close" aria-details="close">
+                </div>
+                <div class="categories">
+                    <div class="box">
+                        <select>
+                            <option>News</option>
+                            <option>Tech</option>
+                            <option>Computing</option>
+                            <option>Sport</option>
+                            <option>Gaming</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="topost">
+                    <textarea aria-label="#" name="post" id="post" placeholder="What's happening"></textarea>
+                </div>
+                <button class="sub">Post</button>
+            </div>
+            <div class="post">
+                <div class="poster">
+                    <div class="profil-pic">
+                        <img src="./static/images/user.png" alt="">
+                    </div>
+                    <div class="info">
                         <h4>Xander</h4>
+                        <small class="text-muted">1 DAYS AGO</small>
                     </div>
-                </a>
-                <div class="sidebar">
-                    <a class="menu-item active">
-                        <span><i class="uil uil-home"></i></span>
-                        <h3>Home</h3>
-                    </a>
-                    <a class="menu-item" id="notifications">
-                        <span><i class="uil uil-bell"><small class="notification-count">9+</small></i></span>
-                        <h3>Notifications</h3>
-                        <div class="notifications-popup">
-                            <div>
-                                <div class="profile-pic">
-                                    <img src="./images/profile-10.jpg">
-                                </div>
-                                <div class="notification-body">
-                                    <b>Abigail Willey</b> accepted your friend request
-                                    <small class="text-muted">2 DAYS AGO</small>
-                                </div>
-                            </div>
-                            <div>
-                                <div class="profile-pic">
-                                    <img src="./images/profile-11.jpg">
-                                </div>
-                                <div class="notification-body">
-                                    <b>Varun Nair</b> commented on your post
-                                    <small class="text-muted">1 HOUR AGO</small>
-                                </div>
-                            </div>
-                            <div>
-                                <div class="profile-pic">
-                                    <img src="./images/profile-12.jpg">
-                                </div>
-                                <div class="notification-body">
-                                    <b>Marry Opmong</b> and 210 other liked your post
-                                    <small class="text-muted">4 MINUTES AGO</small>
-                                </div>
-                            </div>
-                            <div>
-                                <div class="profile-pic">
-                                    <img src="./images/profile-13.jpg">
-                                </div>
-                                <div class="notification-body">
-                                    <b>Wilson Fisk</b> started following you
-                                    <small class="text-muted"> 11 HOURS AGO</small>
-                                </div>
-                            </div>
-                        </div>
-                    </a>
-                    <a class="menu-item" id="messages-notifications">
-                        <i class="uil uil-envelope"><small class="notification-count">6</small></i></span>
-                        <h3>Messages</h3>
-                    </a>
                 </div>
-            </div>
-
-
-
-            <div class="middle">
-                <form class="create-post">
-
-                    <input type="submit" value="Create Post" class="btn btn-primary">
-                </form>
-
-                <div class="feeds">
-                    <div class="feed">
-                        <div class="head">
-
-                        </div>
-                        <div class="user">
-                            <div class="profile-pic">
-                                <img src="images/profile-14.jpg" alt="">
+                <div class="cat"><span>Holiday</span></div>
+                <div class="ctn">
+                    <p class="text">It's holiday everybody is happy</p>
+                </div>
+                <div class="comment">
+                    <img src="./static/images/comment.png" alt="">
+                </div>
+                <div class="comments">
+                    <div class="all-com">
+                        <div class="usr">
+                            <div class="profil-pic">
+                                <img src="./static/images/user.png" alt="">
                             </div>
-                            <div class="info">
-                                <h3>Lana Rose</h3>
-                                <small>Dubai, 15 MINUTES AGO</small>
+                            <h6>Username</h6>
+                        </div>
+                        <p>Great</p>
+                        <div class="usr">
+                            <div class="profil-pic">
+                                <img src="./static/images/user.png" alt="">
                             </div>
-                            <SPAN class="edit"><i class="uil uil-ellipsis-h"></i></SPAN>
+                            <h6>Username</h6>
                         </div>
-
-                        <div class="photo">
-                            <img src="images/feed-1.jpg" alt="">
-                        </div>
-
-                        <div class="action-button">
-                            <div class="interaction-button">
-                                <span><i class="uil uil-thumbs-up"></i></span>
-                                <span><i class="uil uil-comment"></i></span>
-                                <span><i class="uil uil-share"></i></span>
+                        <p>Great</p>
+                        <div class="usr">
+                            <div class="profil-pic">
+                                <img src="./static/images/user.png" alt="">
                             </div>
-                            <div class="bookmark">
-                                <span><i class="uil uil-bookmark"></i></span>
-                            </div>
+                            <h6>Username</h6>
                         </div>
-
-                        <div class="liked-by">
-                            <span><img src="images/profile-15.jpg"></span>
-                            <span><img src="images/profile-16.jpg"></span>
-                            <span><img src="images/profile-17.jpg"></span>
-                            ,<p>Liked by <b>Enrest Achiever</b>snd <b>220 others</b></p>
-                        </div>
-
-                        <div class="caption">
-                            <p><b>Lana Rose</b>Lorem ipsum dolor storiesquiquam eius.
-                                <span class="hash-tag">#lifestyle</span>
-                            </p>
-                        </div>
-                        <div class="comments text-muted">View all 130 comments</div>
+                        <p>Great</p>
                     </div>
-
-                    <div class="feed">
-                        <div class="head">
-
-                        </div>
-                        <div class="user">
-                            <div class="profile-pic">
-                                <img src="images/profile-15.jpg" alt="">
-                            </div>
-                            <div class="info">
-                                <h3>Chris Brown</h3>
-                                <small>New York, 1 HOUR AGO</small>
-                            </div>
-                            <SPAN class="edit"><i class="uil uil-ellipsis-h"></i></SPAN>
-                        </div>
-
-                        <div class="photo">
-                            <img src="images/feed-2.jpg" alt="">
-                        </div>
-
-                        <div class="action-button">
-                            <div class="interaction-button">
-                                <span><i class="uil uil-thumbs-up"></i></span>
-                                <span><i class="uil uil-comment"></i></span>
-                                <span><i class="uil uil-share"></i></span>
-                            </div>
-                            <div class="bookmark">
-                                <span><i class="uil uil-bookmark"></i></span>
-                            </div>
-                        </div>
-
-                        <div class="liked-by">
-                            <span><img src="images/profile-2.jpg"></span>
-                            <span><img src="images/profile-4.jpg"></span>
-                            <span><img src="images/profile-6.jpg"></span>
-                            ,<p>Liked by <b>Enrest Achiever</b>snd <b>188 others</b></p>
-                        </div>
-
-                        <div class="caption">
-                            <p><b>Chirs Brown</b>Lorem ipsum dolor storiesquiquam eius.
-                                <span class="hash-tag">#lifestyle</span>
-                            </p>
-                        </div>
-                        <div class="comments text-muted">View all 40 comments</div>
-                    </div>
-
-                    <div class="feed">
-                        <div class="head">
-
-                        </div>
-                        <div class="user">
-                            <div class="profile-pic">
-                                <img src="images/profile-16.jpg" alt="">
-                            </div>
-                            <div class="info">
-                                <h3>John Samron</h3>
-                                <small>Amsterdam, 7 HOURS AGO</small>
-                            </div>
-                            <SPAN class="edit"><i class="uil uil-ellipsis-h"></i></SPAN>
-                        </div>
-
-                        <div class="photo">
-                            <img src="images/feed-3.jpg" alt="">
-                        </div>
-
-                        <div class="action-button">
-                            <div class="interaction-button">
-                                <span><i class="uil uil-thumbs-up"></i></span>
-                                <span><i class="uil uil-comment"></i></span>
-                                <span><i class="uil uil-share"></i></span>
-                            </div>
-                            <div class="bookmark">
-                                <span><i class="uil uil-bookmark"></i></span>
-                            </div>
-                        </div>
-
-                        <div class="liked-by">
-                            <span><img src="images/profile-3.jpg"></span>
-                            <span><img src="images/profile-5.jpg"></span>
-                            <span><img src="images/profile-7.jpg"></span>
-                            ,<p>Liked by <b>Enrest Achiever</b>snd <b>130 others</b></p>
-                        </div>
-
-                        <div class="caption">
-                            <p><b>John Samron</b>Lorem ipsum dolor storiesquiquam eius.
-                                <span class="hash-tag">#lifestyle</span>
-                            </p>
-                        </div>
-                        <div class="comments text-muted">View all 15 comments</div>
-                    </div>
-
-                    <div class="feed">
-                        <div class="head">
-
-                        </div>
-                        <div class="user">
-                            <div class="profile-pic">
-                                <img src="images/profile-17.jpg" alt="">
-                            </div>
-                            <div class="info">
-                                <h3>Kareena Joshua</h3>
-                                <small>USA, 3 HOURS AGO</small>
-                            </div>
-                            <SPAN class="edit"><i class="uil uil-ellipsis-h"></i></SPAN>
-                        </div>
-
-                        <div class="photo">
-                            <img src="images/feed-4.jpg" alt="">
-                        </div>
-
-                        <div class="action-button">
-                            <div class="interaction-button">
-                                <span><i class="uil uil-thumbs-up"></i></span>
-                                <span><i class="uil uil-comment"></i></span>
-                                <span><i class="uil uil-share"></i></span>
-                            </div>
-                            <div class="bookmark">
-                                <span><i class="uil uil-bookmark"></i></span>
-                            </div>
-                        </div>
-
-                        <div class="liked-by">
-                            <span><img src="images/profile-8.jpg"></span>
-                            <span><img src="images/profile-10.jpg"></span>
-                            <span><img src="images/profile-12.jpg"></span>
-                            ,<p>Liked by <b>Enrest Achiever</b>snd <b>280 others</b></p>
-                        </div>
-
-                        <div class="caption">
-                            <p><b>Kareena Joshua</b>Lorem ipsum dolor storiesquiquam eius.
-                                <span class="hash-tag">#lifestyle</span>
-                            </p>
-                        </div>
-                        <div class="comments text-muted">View all 110 comments</div>
-                    </div>
-
-                    <div class="feed">
-                        <div class="head">
-
-                        </div>
-                        <div class="user">
-                            <div class="profile-pic">
-                                <img src="images/profile-18.jpg" alt="">
-                            </div>
-                            <div class="info">
-                                <h3>Dan Smith</h3>
-                                <small>Paris, 1 DAY AGO</small>
-                            </div>
-                            <SPAN class="edit"><i class="uil uil-ellipsis-h"></i></SPAN>
-                        </div>
-
-                        <div class="photo">
-                            <img src="images/feed-5.jpg" alt="">
-                        </div>
-
-                        <div class="action-button">
-                            <div class="interaction-button">
-                                <span><i class="uil uil-thumbs-up"></i></span>
-                                <span><i class="uil uil-comment"></i></span>
-                                <span><i class="uil uil-share"></i></span>
-                            </div>
-                            <div class="bookmark">
-                                <span><i class="uil uil-bookmark"></i></span>
-                            </div>
-                        </div>
-
-                        <div class="liked-by">
-                            <span><img src="images/profile-9.jpg"></span>
-                            <span><img src="images/profile-11.jpg"></span>
-                            <span><img src="images/profile-13.jpg"></span>
-                            ,<p>Liked by <b>Enrest Achiever</b>snd <b>420 others</b></p>
-                        </div>
-
-                        <div class="caption">
-                            <p><b>Dan Smith</b>Lorem ipsum dolor storiesquiquam eius.
-                                <span class="hash-tag">#lifestyle</span>
-                            </p>
-                        </div>
-                        <div class="comments text-muted">View all 120 comments</div>
-                    </div>
-
-                    <div class="feed">
-                        <div class="head">
-
-                        </div>
-                        <div class="user">
-                            <div class="profile-pic">
-                                <img src="images/profile-19.jpg" alt="">
-                            </div>
-                            <div class="info">
-                                <h3>Karim Benzema</h3>
-                                <small>Mumbai, 30 MINUTES AGO</small>
-                            </div>
-                            <SPAN class="edit"><i class="uil uil-ellipsis-h"></i></SPAN>
-                        </div>
-
-                        <div class="photo">
-                            <img src="images/feed-6.jpg" alt="">
-                        </div>
-
-                        <div class="action-button">
-                            <div class="interaction-button">
-                                <span><i class="uil uil-thumbs-up"></i></span>
-                                <span><i class="uil uil-comment"></i></span>
-                                <span><i class="uil uil-share"></i></span>
-                            </div>
-                            <div class="bookmark">
-                                <span><i class="uil uil-bookmark"></i></span>
-                            </div>
-                        </div>
-
-                        <div class="liked-by">
-                            <span><img src="images/profile-15.jpg"></span>
-                            <span><img src="images/profile-14.jpg"></span>
-                            <span><img src="images/profile-17.jpg"></span>
-                            ,<p>Liked by <b>Enrest Achiever</b>snd <b>150 others</b></p>
-                        </div>
-
-                        <div class="caption">
-                            <p><b>Karim Benzema</b>Lorem ipsum dolor storiesquiquam eius.
-                                <span class="hash-tag">#lifestyle</span>
-                            </p>
-                        </div>
-                        <div class="comments text-muted">View all 30 comments</div>
-                    </div>
-                    <div class="feed">
-                        <div class="head">
-
-                        </div>
-                        <div class="user">
-                            <div class="profile-pic">
-                                <img src="images/profile-20.jpg" alt="">
-                            </div>
-                            <div class="info">
-                                <h3>Srishti Tirkey</h3>
-                                <small>Bangalore, 11 HOURS AGO</small>
-                            </div>
-                            <SPAN class="edit"><i class="uil uil-ellipsis-h"></i></SPAN>
-                        </div>
-
-                        <div class="photo">
-                            <img src="images/feed-7.jpg" alt="">
-                        </div>
-
-                        <div class="action-button">
-                            <div class="interaction-button">
-                                <span><i class="uil uil-thumbs-up"></i></span>
-                                <span><i class="uil uil-comment"></i></span>
-                                <span><i class="uil uil-share"></i></span>
-                            </div>
-                            <div class="bookmark">
-                                <span><i class="uil uil-bookmark"></i></span>
-                            </div>
-                        </div>
-
-                        <div class="liked-by">
-                            <span><img src="images/profile-15.jpg"></span>
-                            <span><img src="images/profile-13.jpg"></span>
-                            <span><img src="images/profile-10.jpg"></span>
-                            ,<p>Liked by <b>Enrest Achiever</b>snd <b>530 others</b></p>
-                        </div>
-
-                        <div class="caption">
-                            <p><b>Srishti Tirkey</b>Lorem ipsum dolor storiesquiquam eius.
-                                <span class="hash-tag">#lifestyle</span>
-                            </p>
-                        </div>
-                        <div class="comments text-muted">View all 190 comments</div>
+                    <div class="tocom">
+                        <textarea aria-label="#" name="com" id="com" placeholder="comment..."></textarea>
+                        <button class="btn-com">Comment</button>
                     </div>
                 </div>
             </div>
-
-            <div class="right">
-                <div class="messages">
-                    <div class="heading">
-                        <h4>Messages</h4>
+            <div class="post">
+                <div class="poster">
+                    <div class="profil-pic">
+                        <img src="./static/images/user.png" alt="">
                     </div>
-
-                    <div class="message">
-                        <div class="profile-pic">
-                            <img src="images/profile-17.jpg">
-                            <!-- <div class="active"></div> -->
-                        </div>
-                        <div class="message-body">
-                            <h5>Kareena Joshua</h5>
-                            <p class="text-muted">Just woke up bruh..</p>
-                        </div>
+                    <div class="info">
+                        <h4>Xander</h4>
+                        <small class="text-muted">1 DAYS AGO</small>
                     </div>
-                    <div class="message">
-                        <div class="profile-pic">
-                            <img src="images/profile-18.jpg">
-                            <!-- <div class="active"></div> -->
+                </div>
+                <div class="cat"><span>Holiday</span></div>
+                <div class="ctn">
+                    <p class="text">It's holiday everybody is happy</p>
+                </div>
+                <div class="comment">
+                    <img src="./static/images/comment.png" alt="">
+                </div>
+                <div class="comments">
+                    <div class="all-com">
+                        <div class="usr">
+                            <div class="profil-pic">
+                                <img src="./static/images/user.png" alt="">
+                            </div>
+                            <h6>Username</h6>
                         </div>
-                        <div class="message-body">
-                            <h5>Dan Smith</h5>
-                            <p class="text-bold">2 New Messages</p>
+                        <p>Great</p>
+                        <div class="usr">
+                            <div class="profil-pic">
+                                <img src="./static/images/user.png" alt="">
+                            </div>
+                            <h6>Username</h6>
                         </div>
+                        <p>Great</p>
+                        <div class="usr">
+                            <div class="profil-pic">
+                                <img src="./static/images/user.png" alt="">
+                            </div>
+                            <h6>Username</h6>
+                        </div>
+                        <p>Great</p>
                     </div>
-                    <div class="message">
-                        <div class="profile-pic">
-                            <img src="images/profile-15.jpg">
-                        </div>
-                        <div class="message-body">
-                            <h5>Chris Brown</h5>
-                            <p class="text-muted">Lol u right</p>
-                        </div>
+                    <div class="tocom">
+                        <textarea aria-label="#" name="com" id="com" placeholder="comment..."></textarea>
+                        <button class="btn-com">Comment</button>
                     </div>
-                    <div class="message">
-                        <div class="profile-pic">
-                            <img src="images/profile-14.jpg">
-                        </div>
-                        <div class="message-body">
-                            <h5>Lana Rose</h5>
-                            <p class="text-bold">Birthday tomorrow!!</p>
-                        </div>
+                </div>
+            </div>
+            <div class="post">
+                <div class="poster">
+                    <div class="profil-pic">
+                        <img src="./static/images/user.png" alt="">
                     </div>
-                    <div class="message">
-                        <div class="profile-pic">
-                            <img src="images/profile-11.jpg">
-                        </div>
-                        <div class="message-body">
-                            <h5>Varun Nair</h5>
-                            <p class="text-muted">Ssup?</p>
-                        </div>
+                    <div class="info">
+                        <h4>Xander</h4>
+                        <small class="text-muted">1 DAYS AGO</small>
                     </div>
-                    <div class="message">
-                        <div class="profile-pic">
-                            <img src="images/profile-1.jpg">
-                            <!-- <div class="active"></div> -->
+                </div>
+                <div class="cat"><span>Holiday</span></div>
+                <div class="ctn">
+                    <p class="text">It's holiday everybody is happy</p>
+                </div>
+                <div class="comment">
+                    <img src="./static/images/comment.png" alt="">
+                </div>
+                <div class="comments">
+                    <div class="all-com">
+                        <div class="usr">
+                            <div class="profil-pic">
+                                <img src="./static/images/user.png" alt="">
+                            </div>
+                            <h6>Username</h6>
                         </div>
-                        <div class="message-body">
-                            <h5>Jahnvi Doifode</h5>
-                            <p class="text-bold">3 New Messages</p>
+                        <p>Great</p>
+                        <div class="usr">
+                            <div class="profil-pic">
+                                <img src="./static/images/user.png" alt="">
+                            </div>
+                            <h6>Username</h6>
                         </div>
+                        <p>Great</p>
+                        <div class="usr">
+                            <div class="profil-pic">
+                                <img src="./static/images/user.png" alt="">
+                            </div>
+                            <h6>Username</h6>
+                        </div>
+                        <p>Great</p>
+                    </div>
+                    <div class="tocom">
+                        <textarea aria-label="#" name="com" id="com" placeholder="comment..."></textarea>
+                        <button class="btn-com">Comment</button>
+                    </div>
+                </div>
+            </div>
+            <div class="post">
+                <div class="poster">
+                    <div class="profil-pic">
+                        <img src="./static/images/user.png" alt="">
+                    </div>
+                    <div class="info">
+                        <h4>Xander</h4>
+                        <small class="text-muted">1 DAYS AGO</small>
+                    </div>
+                </div>
+                <div class="cat"><span>Holiday</span></div>
+                <div class="ctn">
+                    <p class="text">It's holiday everybody is happy</p>                
+                </div>
+                <div class="comment">
+                    <img src="./static/images/comment.png" alt="">
+                </div>
+                <div class="comments">
+                    <div class="all-com">
+                        <div class="usr">
+                            <div class="profil-pic">
+                                <img src="./static/images/user.png" alt="">
+                            </div>
+                            <h6>Username</h6>
+                        </div>
+                        <p>Great</p>
+                        <div class="usr">
+                            <div class="profil-pic">
+                                <img src="./static/images/user.png" alt="">
+                            </div>
+                            <h6>Username</h6>
+                        </div>
+                        <p>Great</p>
+                        <div class="usr">
+                            <div class="profil-pic">
+                                <img src="./static/images/user.png" alt="">
+                            </div>
+                            <h6>Username</h6>
+                        </div>
+                        <p>Great</p>
+                    </div>
+                    <div class="tocom">
+                        <textarea aria-label="#" name="com" id="com" placeholder="comment..."></textarea>
+                        <button class="btn-com">Comment</button>
+                    </div>
+                </div>
+            </div>
+            <div class="post">
+                <div class="poster">
+                    <div class="profil-pic">
+                        <img src="./static/images/user.png" alt="">
+                    </div>
+                    <div class="info">
+                        <h4>Xander</h4>
+                        <small class="text-muted">1 DAYS AGO</small>
+                    </div>
+                </div>
+                <div class="cat"><span>Holiday</span></div>
+                <div class="ctn">
+                    <p class="text">It's holiday everybody is happy</p>
+                </div>
+                <div class="comment">
+                    <img src="./static/images/comment.png" alt="">
+                </div>
+                <div class="comments">
+                    <div class="all-com">
+                        <div class="usr">
+                            <div class="profil-pic">
+                                <img src="./static/images/user.png" alt="">
+                            </div>
+                            <h6>Username</h6>
+                        </div>
+                        <p>Great</p>
+                        <div class="usr">
+                            <div class="profil-pic">
+                                <img src="./static/images/user.png" alt="">
+                            </div>
+                            <h6>Username</h6>
+                        </div>
+                        <p>Great</p>
+                        <div class="usr">
+                            <div class="profil-pic">
+                                <img src="./static/images/user.png" alt="">
+                            </div>
+                            <h6>Username</h6>
+                        </div>
+                        <p>Great</p>
+                    </div>
+                    <div class="tocom">
+                        <textarea aria-label="#" name="com" id="com" placeholder="comment..."></textarea>
+                        <button class="btn-com">Comment</button>
+                    </div>
+                </div>
+            </div>
+            <div class="post">
+                <div class="poster">
+                    <div class="profil-pic">
+                        <img src="./static/images/user.png" alt="">
+                    </div>
+                    <div class="info">
+                        <h4>Xander</h4>
+                        <small class="text-muted">1 DAYS AGO</small>
+                    </div>
+                </div>
+                <div class="cat"><span>Holiday</span></div>
+                <div class="ctn">
+                    <p class="text">It's holiday everybody is happy</p>
+                </div>
+                <div class="comment">
+                    <img src="./static/images/comment.png" alt="">
+                </div>
+                <div class="comments">
+                    <div class="all-com">
+                        <div class="usr">
+                            <div class="profil-pic">
+                                <img src="./static/images/user.png" alt="">
+                            </div>
+                            <h6>Username</h6>
+                        </div>
+                        <p>Great</p>
+                        <div class="usr">
+                            <div class="profil-pic">
+                                <img src="./static/images/user.png" alt="">
+                            </div>
+                            <h6>Username</h6>
+                        </div>
+                        <p>Great</p>
+                        <div class="usr">
+                            <div class="profil-pic">
+                                <img src="./static/images/user.png" alt="">
+                            </div>
+                            <h6>Username</h6>
+                        </div>
+                        <p>Great</p>
+                    </div>
+                    <div class="tocom">
+                        <textarea aria-label="#" name="com" id="com" placeholder="comment..."></textarea>
+                        <button class="btn-com">Comment</button>
                     </div>
                 </div>
             </div>
         </div>
-    </main>
-
-    <script src="./JS/home.js"></script>
-</body>
-
-</html>`
-var SignUpIn = `<html lang="en">
-<head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-	<link rel="stylesheet" href="/static/CSS/styles.css">
-	<title>Real Time Forum</title>
-</head>
+        <div class="messages">
+            <div class="title">
+                <span>
+                    <h5>Messages</h5>
+                </span>
+            </div>
+            <div class="message">
+                <div class="usr">
+                    <div class="inf">
+                        <div class="profil-pic"><img src="./static/images/user.png" alt=""></div>
+                        <div>Shadow</div>
+                    </div>
+                    <div class="stat"></div>
+                </div>
+                <div class="discus">
+                    <div class="from-usr">Hello <p class="message-date">17/02/2024</p></div>
+                    <div class="from-usr">How are u ?<p class="message-date">17/02/2024</p></div>
+                    <div class="from-exp">Hi <p class="message-date">17/02/2024</p></div>
+                    <div class="from-exp">I'm fine and u ? <p class="message-date">17/02/2024</p></div>
+                    <div class="from-usr">Yeah <p class="message-date">17/02/2024</p></div>
+                    <div class="to-send">
+                        <textarea name="sms" id="sms" placeholder="Type a message..."></textarea>
+                        <div class="send"><img src="./static/images/send.png" alt="send"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="message">
+                <div class="usr">
+                    <div class="inf">
+                        <div class="profil-pic"><img src="./static/images/user.png" alt=""></div>
+                        <div>Shadow</div>
+                    </div>
+                    <div class="stat"></div>
+                </div>
+                <div class="discus">
+                    <div class="from-usr">Hello <p class="message-date">17/02/2024</p></div>
+                    <div class="from-usr">How are u ?<p class="message-date">17/02/2024</p></div>
+                    <div class="from-exp">Hi <p class="message-date">17/02/2024</p></div>
+                    <div class="from-exp">I'm fine and u ? <p class="message-date">17/02/2024</p></div>
+                    <div class="from-usr">Yeah <p class="message-date">17/02/2024</p></div>
+                    <div class="to-send">
+                        <textarea name="sms" id="sms" placeholder="Type a message..."></textarea>
+                        <div class="send"><img src="./static/images/send.png" alt="send"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="message">
+                <div class="usr">
+                    <div class="inf">
+                        <div class="profil-pic"><img src="./static/images/user.png" alt=""></div>
+                        <div>Shadow</div>
+                    </div>
+                    <div class="stat"></div>
+                </div>
+                <div class="discus">
+                    <div class="from-usr">Hello <p class="message-date">17/02/2024</p></div>
+                    <div class="from-usr">How are u ?<p class="message-date">17/02/2024</p></div>
+                    <div class="from-exp">Hi <p class="message-date">17/02/2024</p></div>
+                    <div class="from-exp">I'm fine and u ? <p class="message-date">17/02/2024</p></div>
+                    <div class="from-usr">Yeah <p class="message-date">17/02/2024</p></div>
+                    <div class="to-send">
+                        <textarea name="sms" id="sms" placeholder="Type a message..."></textarea>
+                        <div class="send"><img src="./static/images/send.png" alt="send"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="message">
+                <div class="usr">
+                    <div class="inf">
+                        <div class="profil-pic"><img src="./static/images/user.png" alt=""></div>
+                        <div>Shadow</div>
+                    </div>
+                    <div class="stat"></div>
+                </div>
+                <div class="discus">
+                    <div class="from-usr">Hello <p class="message-date">17/02/2024</p></div>
+                    <div class="from-usr">How are u ?<p class="message-date">17/02/2024</p></div>
+                    <div class="from-exp">Hi <p class="message-date">17/02/2024</p></div>
+                    <div class="from-exp">I'm fine and u ? <p class="message-date">17/02/2024</p></div>
+                    <div class="from-usr">Yeah <p class="message-date">17/02/2024</p></div>
+                    <div class="to-send">
+                        <textarea name="sms" id="sms" placeholder="Type a message..."></textarea>
+                        <div class="send"><img src="./static/images/send.png" alt="send"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="message">
+                <div class="usr">
+                    <div class="inf">
+                        <div class="profil-pic"><img src="./static/images/user.png" alt=""></div>
+                        <div>Shadow</div>
+                    </div>
+                    <div class="stat"></div>
+                </div>
+                <div class="discus">
+                    <div class="from-usr">Hello <p class="message-date">17/02/2024</p></div>
+                    <div class="from-usr">How are u ?<p class="message-date">17/02/2024</p></div>
+                    <div class="from-exp">Hi <p class="message-date">17/02/2024</p></div>
+                    <div class="from-exp">I'm fine and u ? <p class="message-date">17/02/2024</p></div>
+                    <div class="from-usr">Yeah <p class="message-date">17/02/2024</p></div>
+                    <div class="to-send">
+                        <textarea name="sms" id="sms" placeholder="Type a message..."></textarea>
+                        <div class="send"><img src="./static/images/send.png" alt="send"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="message">
+                <div class="usr">
+                    <div class="inf">
+                        <div class="profil-pic"><img src="./static/images/user.png" alt=""></div>
+                        <div>Shadow</div>
+                    </div>
+                    <div class="stat"></div>
+                </div>
+                <div class="discus">
+                    <div class="from-usr">Hello <p class="message-date">17/02/2024</p></div>
+                    <div class="from-usr">How are u ?<p class="message-date">17/02/2024</p></div>
+                    <div class="from-exp">Hi <p class="message-date">17/02/2024</p></div>
+                    <div class="from-exp">I'm fine and u ? <p class="message-date">17/02/2024</p></div>
+                    <div class="from-usr">Yeah <p class="message-date">17/02/2024</p></div>
+                    <div class="to-send">
+                        <textarea name="sms" id="sms" placeholder="Type a message..."></textarea>
+                        <div class="send"><img src="./static/images/send.png" alt="send"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="message">
+                <div class="usr">
+                    <div class="inf">
+                        <div class="profil-pic"><img src="./static/images/user.png" alt=""></div>
+                        <div>Shadow</div>
+                    </div>
+                    <div class="stat"></div>
+                </div>
+                <div class="discus">
+                    <div class="from-usr">Hello <p class="message-date">17/02/2024</p></div>
+                    <div class="from-usr">How are u ?<p class="message-date">17/02/2024</p></div>
+                    <div class="from-exp">Hi <p class="message-date">17/02/2024</p></div>
+                    <div class="from-exp">I'm fine and u ? <p class="message-date">17/02/2024</p></div>
+                    <div class="from-usr">Yeah <p class="message-date">17/02/2024</p></div>
+                    <div class="to-send">
+                        <textarea name="sms" id="sms" placeholder="Type a message..."></textarea>
+                        <div class="send"><img src="./static/images/send.png" alt="send"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    </body>
+`
+var SignUpIn = `
 <body>
 	<!-- <div class="loader"></div> -->
 	<div class="container" id="container">
@@ -531,8 +634,7 @@ var SignUpIn = `<html lang="en">
 				<input id="password" type="password" name="password" placeholder="Password">
 				<button class="signup" disabled>Sign Up</button>
 			</form>
-			<div id="successMessage" class="successMessage">
-				Registered ✅!
+			<div id="Message" class="Message">
 			</div>
 		</div>
 		<div class="form-container sign-in">
@@ -559,9 +661,8 @@ var SignUpIn = `<html lang="en">
 			</div>
 		</div>
 	</div>
-	<script src="/static/JS/sign.js"></script>
-</body>
-</html>`
+    </body>
+`
 
 var ErrorPage = `<html lang="en">
 <head>
@@ -703,7 +804,8 @@ func handleActiveSession(w http.ResponseWriter, r *http.Request) {
 	var exist bool
 
 	if r.Method != http.MethodPost {
-		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+		jsonResponse(w, http.StatusMethodNotAllowed, "Invalid request method")
+		fmt.Println("Les données d'identification sont invalides: ", http.StatusBadRequest)
 		return
 	} else {
 		user, exist = CheckActiveSession(r)
@@ -718,19 +820,92 @@ func handleActiveSession(w http.ResponseWriter, r *http.Request) {
 			SignUpSignIn: SignUpIn,
 		}
 
-		// Définissez le type de contenu de la réponse comme JSON
-		w.Header().Set("Content-Type", "application/json")
+		// // Définissez le type de contenu de la réponse comme JSON
+		// w.Header().Set("Content-Type", "application/json")
 
-		// Écrire les données JSON dans le corps de la réponse
+		// // Écrire les données JSON dans le corps de la réponse
 
-		jsonData, err := json.Marshal(res)
+		// jsonData, err := json.Marshal(res)
 
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+		// if err != nil {
+		// 	jsonResponse(w, http.StatusInternalServerError, "Internal Server Error")
+		// 	return
+		// }
+		// w.Write(jsonData)
+		jsonResponse2(w, http.StatusOK, res)
+
+	}
+}
+
+// Gestionnaire pour la connexion des utilisateurs
+func HandleLogin(w http.ResponseWriter, r *http.Request) {
+
+	var user models.Users
+	var login models.Register
+
+	// Lire les données JSON de la requête
+	if err := json.NewDecoder(r.Body).Decode(&login); err != nil {
+		jsonResponse(w, http.StatusBadRequest, "Bad Request")
+		fmt.Println("Les données d'identification sont invalides: ", http.StatusBadRequest)
+		return
+	}
+
+	// Recherche de l'utilisateur dans la base de données
+	err := database.DB.QueryRow("SELECT * FROM users WHERE Email = ?", login.Email).
+		Scan(&user.ID, &user.Nickname, &user.Firstname, &user.Lastname, &user.Email, &user.Gender, &user.Age, &user.Password, &user.SessionExpiry)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			jsonResponse(w, http.StatusUnauthorized, "Bad Credentials ❌")
+			return
+		} else {
+			fmt.Println(err) // Journalisation de l'erreur pour le débogage
+			jsonResponse(w, http.StatusInternalServerError, "Internal Server Error")
 			return
 		}
-		w.Write(jsonData)
 	}
+
+	// Vérification du mot de passe
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(login.Password))
+	fmt.Println("Vérification du mot de passe: ", user.Password, login.Password)
+	if err != nil {
+		jsonResponse(w, http.StatusUnauthorized, "Bad Credentials ❌")
+		fmt.Println("Mot de passe incorrect")
+		return
+	}
+
+	// Session de l'utilisateur
+
+	sessionID, err1 := uuid.NewV4()
+	if err1 != nil {
+		// ...
+	}
+
+	// Calcul de l'heure d'expiration de la session (15 minutes plus tard)
+	sessionExpiry := time.Now().Add(15 * time.Minute)
+
+	// Mise à jour de l'identifiant de session et de l'heure d'expiration dans la base de données
+	_, err = database.DB.Exec("UPDATE users SET SessionExpiry = ? WHERE Id = ?", sessionExpiry, user.ID)
+	if err != nil {
+		// ...
+	}
+
+	// Insertion de la session dans la table sessions
+	_, err = database.DB.Exec("INSERT INTO sessions (ID, UserId, SessionExpiry) VALUES (?, ?, ?)", sessionID.String(), user.ID, sessionExpiry)
+	if err != nil {
+		// ...
+	}
+	response := LoginSuccessResponse{
+		Status:        201,
+		Message:       "Success ✅",
+		SessionID:     sessionID.String(),
+		UserID:        user.ID,
+		SessionExpiry: sessionExpiry,
+		HomePage:      Home,
+	}
+
+	jsonResponse2(w, http.StatusOK, response)
+
 }
 
 func renderTemplateWithLayout(w http.ResponseWriter) error {

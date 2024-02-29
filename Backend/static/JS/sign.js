@@ -1,3 +1,20 @@
+function loadScript(scriptUrl) {
+    const scripts = document.querySelectorAll('script');
+
+    // Parcourir tous les scripts
+    scripts.forEach(script => {
+        // Vérifier si le script a un src contenant "/static/JS/sign.js"
+        if (script.src && script.src.includes("/static/JS/sign.js")) {
+            // Supprimer le script s'il correspond
+            script.remove();
+        }
+    });
+
+    const script = document.createElement('script');
+    script.src = scriptUrl;
+    document.head.appendChild(script);
+}
+
 const container = document.getElementById('container');
 const registerBtn = document.getElementById('register');
 const loginBtn = document.getElementById('login');
@@ -24,7 +41,7 @@ const regexMap = {
 
 // Récupérer tous les champs du formulaire
 const button = document.querySelector('.signup');
-const inputs = document.querySelectorAll('input');
+const inputs = document.querySelectorAll('.form-container.sign-up input');
 
 // Pour chaque champ, ajouter un écouteur d'événements
 inputs.forEach((input) => {
@@ -59,44 +76,89 @@ button.addEventListener('mouseover', function () {
     }
 });
 
-loginForm.addEventListener('submit', (event) => {
+var Head = `<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="https://unicons.iconscout.com/release/v2.1.6/css/unicons.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+<link href='https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css' rel='stylesheet'>
+<script src='https://kit.fontawesome.com/a076d05399.js' crossorigin='anonymous'></script>
+<link rel="stylesheet" href="/static/CSS/home.css">
+<title>Real Time Forum</title>
+</head>`
+
+//Login
+loginForm.addEventListener('submit', async (event) => {
     event.preventDefault();
     const email = document.getElementById('loginMail').value;
     const password = document.getElementById('loginPassword').value;
     console.log(email, password);
-    //requête API pour le login
-    fetch('http://localhost:8080/api/login', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ Email: email, Password: password }),
-    })
-        .then(response => response.json())
-        .then(data => {
-            console.log('Login success:', data);
-        })
-        .catch(error => {
-            console.error('Login error:', error);
+    printLoader(false);
+    try {
+        const response = await fetch('http://localhost:8080/api/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ Email: email, Password: password }),
         });
+
+        const data = await response.json();
+        console.log('Login success:', data);
+        messageToPrint(data);
+        setTimeout(() => {
+            addingHtmlClass();
+            addingHead();
+            addingBody(data);
+        }, 1500);
+
+    } catch (error) {
+        console.error('Login error:', error);
+    }
 });
 
-registerForm.addEventListener('submit', (event) => {
-    event.preventDefault();
+//Ajout de la class homepage a html
+const addingHtmlClass = () => {
+    // Sélection de la balise <html>
+    const htmlElement = document.querySelector('html');
+    
+    if (!htmlElement.classList.contains('homepage')) htmlElement.classList.add('homepage');
+}
+//Ajout du Head 
+const addingHead = () => {
+    const newHead = document.createElement('head');
+    const oldHead = document.querySelector('head');
+    newHead.innerHTML = Head;
+    document.documentElement.replaceChild(newHead, oldHead);
+}
 
+//Ajout du body
+const addingBody = (data) => {
+    document.body.innerHTML = '';
+    document.body.insertAdjacentHTML('afterbegin', data.homePage);
+    loadScript('/static/JS/home.js');
+}
+
+//Print loader
+const printLoader = (validForm) => {
     let div = document.createElement('div');
-    div.classList = 'fullScreenDiv';
     let loader = document.createElement('div')
+    div.classList = 'fullScreenDiv';
     loader.classList = 'loader'
     div.appendChild(loader)
     document.body.appendChild(div);
-
     setTimeout(() => {
-        document.body.removeChild(div);
-        if (!validateForm()) return
-        printRegistered()
+        if (document.body.contains(div)) document.body.removeChild(div);
+        if (validForm) validateForm()
     }, 1000);
+}
 
+//Register
+
+registerForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+
+    printLoader(true);
 
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
@@ -108,35 +170,41 @@ registerForm.addEventListener('submit', (event) => {
     const gender = document.getElementById('gender').value;
 
     console.log(email, password);
-    //requête API pour l'inscription
-    fetch('http://localhost:8080/api/register', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ Email: email, Password: password, Nickname: nickname, Firstname: firstname, Lastname: lastname, Age: newAge, Gender: gender }),
-    })
-        .then(response => response.json())
-        .then(data => {
-            console.log('Register success:', data);
-        })
-        .catch(error => {
-            console.error('Register error:', error);
+
+    try {
+        const response = await fetch('http://localhost:8080/api/register', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ Email: email, Password: password, Nickname: nickname, Firstname: firstname, Lastname: lastname, Age: newAge, Gender: gender }),
         });
+
+        const data = await response.json();
+        console.log('Register success:', data);
+        messageToPrint(data);
+
+    } catch (error) {
+        console.error('Register error:', error);
+    }
 });
+
 // });
 
-const printRegistered = () => {
+const messageToPrint = (data) => {
     setTimeout(function () {
-        document.getElementById('successMessage').style.visibility = 'visible';
+        let toPrint = document.getElementById('Message');
+        toPrint.innerText = data.message
+        toPrint.style.visibility = 'visible';
         setTimeout(() => {
-            document.getElementById('successMessage').style.visibility = 'hidden';
+            toPrint.style.visibility = 'hidden';
+            if (data.Status !== 201) return
             container.classList.remove("active");
             inputs.forEach(input => {
                 input.value = '';
             })
         }, 1000)
-    }, 0);
+    }, 500);
 }
 
 function validateForm() {
