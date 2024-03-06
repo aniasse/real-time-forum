@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"regexp"
+	"strings"
 
 	"golang.org/x/crypto/bcrypt"
 
@@ -52,12 +54,16 @@ func HandleCheckSession(w http.ResponseWriter, r *http.Request) {
 }
 
 // Gestionnaire pour l'inscription des utilisateurs
-func HandleRegister(w http.ResponseWriter, r *http.Request) {
+func handleRegister(w http.ResponseWriter, r *http.Request) {
 	var newUser models.Users
 
+	if r.Method != http.MethodPost {
+		jsonResponse(w, http.StatusMethodNotAllowed, "Method Not Allow")
+		return
+	}
 	// Lire les données JSON de la requête
 	if err := json.NewDecoder(r.Body).Decode(&newUser); err != nil {
-		jsonResponse(w, http.StatusBadRequest, "Bad Request ")
+		jsonResponse(w, http.StatusBadRequest, "Bad Request")
 		fmt.Println("Les données d'inscription sont invalides: ", http.StatusBadRequest)
 		return
 	}
@@ -125,4 +131,275 @@ func HandleRegister(w http.ResponseWriter, r *http.Request) {
 	jsonResponse(w, http.StatusCreated, "Registered ✅")
 	fmt.Println("Enregistrement réussi: ")
 
+}
+
+func VerifyPost(post newPosts) (string, bool) {
+
+	validCategories := []string{"News", "Tech", "Computing", "Sport", "Gaming"}
+	catIsValid := false
+
+	for _, cat := range validCategories {
+		if cat == post.Category {
+			catIsValid = true
+			break
+		}
+	}
+
+	if !catIsValid {
+		return "Invalid Category ❌", false
+	}
+
+	if strings.TrimSpace(post.PostContent) == "" {
+		return "Empty Post ❌", false
+	}
+
+	return "Posted ✅", true
+}
+
+type newPosts struct {
+	UserId      string
+	Category    string
+	PostContent string
+}
+
+// Creating Post
+func handleCreatingPost(w http.ResponseWriter, r *http.Request) {
+
+	var newPost newPosts
+	if r.Method != http.MethodPost {
+		jsonResponse(w, http.StatusMethodNotAllowed, "Method Not Allow")
+		return
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&newPost); err != nil {
+		jsonResponse(w, http.StatusBadRequest, "Bad Request")
+		fmt.Println("Les données d'inscription sont invalides: ", http.StatusBadRequest)
+		return
+	}
+
+	message, isValid := VerifyPost(newPost)
+
+	if !isValid {
+		jsonResponse(w, http.StatusNonAuthoritativeInfo, message)
+		fmt.Println("Les données du post sont invalides: ", http.StatusNonAuthoritativeInfo)
+		return
+	}
+
+	date := time.Now().Format(time.RFC3339)
+
+	_, err := database.DB.Exec("INSERT INTO posts (UserId, Category, Content, Date) VALUES (?, ?, ?, ?)",
+		newPost.UserId, newPost.Category, newPost.PostContent, date)
+
+	if err != nil {
+		fmt.Println(err) // Journalisation de l'erreur pour le débogage
+		jsonResponse(w, http.StatusInternalServerError, "Internal Server Error")
+		fmt.Println("Erreur lors de l'enregistrement de l'utilisateur: ", err)
+		return
+	}
+
+	jsonResponse(w, http.StatusCreated, "Posted ✅")
+	fmt.Println("Post réussi: ")
+
+}
+
+func handleGetPosts(w http.ResponseWriter, r *http.Request) {
+	// Requête avec une jointure pour inclure le Nickname du User
+
+	rows, err := database.DB.Query(`
+			SELECT 
+				posts.Id, posts.UserId, posts.Category, posts.Content, posts.Date,
+				users.Nickname
+			FROM 
+				posts
+			LEFT JOIN 
+				users ON posts.UserId = users.Id
+		`)
+	if err != nil {
+		fmt.Println("error 1")
+		jsonResponse(w, http.StatusInternalServerError, "Internal Server Error")
+		fmt.Println("Erreur lors de la recuperation de posts: ", err)
+		return
+	}
+	defer rows.Close()
+
+	var posts []PostWithUser
+	for rows.Next() {
+		var post PostWithUser
+		err := rows.Scan(&post.ID, &post.UserID, &post.Category, &post.Content, &post.Date, &post.Nickname)
+		if err != nil {
+			fmt.Println("error 2")
+			jsonResponse(w, http.StatusInternalServerError, "Internal Server Error")
+			fmt.Println("Erreur lors de la recuperation de posts: ", err)
+			return
+		}
+		posts = append(posts, post)
+	}
+
+	jsonResponse2(w, http.StatusOK, posts)
+}
+
+type PostID struct {
+	PostId string `json:"PostId"`
+}
+
+// Structure de commentaire
+type Comment struct {
+	Content  string `json:"content"`
+	Username string `json:"username"`
+}
+
+func handleGetComments(w http.ResponseWriter, r *http.Request) {
+
+	if r.Method != http.MethodPost {
+		jsonResponse(w, http.StatusMethodNotAllowed, "Method Not Allow")
+		return
+	}
+
+	// Décoder le PostId reçu
+	var postId PostID
+	if err := json.NewDecoder(r.Body).Decode(&postId); err != nil {
+		jsonResponse(w, http.StatusBadRequest, "Bad Request")
+		fmt.Println("Les données d'inscription sont invalides: ", http.StatusBadRequest)
+		return
+	}
+
+	query := `
+		SELECT comments.Content, users.Nickname
+		FROM comments
+		JOIN users ON comments.UserId = users.Id
+		WHERE comments.PostId = $1
+	`
+
+	rows, err := database.DB.Query(query, postId.PostId)
+	if err != nil {
+		fmt.Println("error 1")
+		fmt.Println("Erreur lors de la récupération des commentaires:", err)
+		jsonResponse(w, http.StatusInternalServerError, "Internal Server Error")
+		return
+	}
+	defer rows.Close()
+
+	comments := []Comment{}
+	for rows.Next() {
+		var comment Comment
+		err := rows.Scan(&comment.Content, &comment.Username)
+		if err != nil {
+			fmt.Println("error 2")
+			fmt.Println("Erreur lors de la lecture d'un commentaire:", err)
+			jsonResponse(w, http.StatusInternalServerError, "Internal Server Error")
+			return
+		}
+		comments = append(comments, comment)
+	}
+
+	jsonResponse2(w, http.StatusOK, comments)
+}
+
+// Structure de commentaire pour stockage en base de données
+type Commentary struct {
+	UserID  string `json:"UserId"`
+	PostID  string `json:"PostId"`
+	Content string `json:"Content"`
+}
+
+// Fonction pour traiter les commentaires envoyés depuis le frontend
+func handleComment(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("enter")
+	// Vérifier que la méthode HTTP est POST
+	if r.Method != http.MethodPost {
+		jsonResponse(w, http.StatusMethodNotAllowed, "Method Not Allowed")
+		return
+	}
+
+	// Déclarer une variable pour stocker les données du commentaire
+	var comment Commentary
+
+	// Décoder les données du commentaire depuis le corps de la requête
+	err := json.NewDecoder(r.Body).Decode(&comment)
+	if err != nil {
+		jsonResponse(w, http.StatusBadRequest, "Bad Request")
+		fmt.Println("Erreur lors de la lecture des données du commentaire:", err)
+		return
+	}
+
+	// Expression régulière pour un entier positif
+	re := regexp.MustCompile(`^\d+$`)
+
+	// Vérifier si la chaîne correspond à l'expression régulière
+	isInteger := re.MatchString(comment.PostID)
+
+	var count int
+	database.DB.QueryRow("SELECT COUNT(*) FROM posts WHERE id = $1", comment.PostID).Scan(&count)
+
+	// Vérifier que le contenu du commentaire n'est pas vide ou ne contient que des espaces
+	if strings.TrimSpace(comment.Content) == "" || !isInteger || count != 1 {
+		jsonResponse2(w, http.StatusBadRequest, "Bad Request")
+		fmt.Println("Empty com")
+		return
+	}
+
+	// Insérer le commentaire dans la base de données
+	_, err = database.DB.Exec(`
+		INSERT INTO comments (UserId, PostId, Content)
+		VALUES ($1, $2, $3)
+	`, comment.UserID, comment.PostID, comment.Content)
+	if err != nil {
+		jsonResponse(w, http.StatusInternalServerError, "Internal Server Error")
+		fmt.Println("Erreur lors de l'insertion du commentaire en base de données:", err)
+		return
+	}
+
+	// Répondre avec un message de succès
+	jsonResponse(w, http.StatusCreated, "Commented ✅.")
+}
+
+type UserNickname struct {
+	Nickname string `json:"nickname"`
+}
+
+type User struct {
+	UserId string `json:"Id"`
+}
+
+func handleGetUsers(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("getusers")
+	if r.Method != http.MethodPost {
+		jsonResponse(w, http.StatusMethodNotAllowed, "Method Not Allowed")
+		return
+	}
+
+	var user User
+	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
+		jsonResponse(w, http.StatusBadRequest, "Bad Request")
+		fmt.Println("Erreur lors de la réception des données utilisateur:", err)
+		return
+	}
+
+	// Récupérer tous les nicknames sauf celui de l'utilisateur spécifié
+	query := `
+		SELECT Nickname
+		FROM users
+		WHERE Id != $1
+	`
+	rows, err := database.DB.Query(query, user.UserId)
+	if err != nil {
+		fmt.Println("Erreur lors de la récupération des utilisateurs:", err)
+		jsonResponse(w, http.StatusInternalServerError, "Internal Server Error")
+		return
+	}
+	defer rows.Close()
+
+	var userNicknames []UserNickname
+	for rows.Next() {
+		var nickname string
+		err := rows.Scan(&nickname)
+		if err != nil {
+			fmt.Println("Erreur lors de la lecture d'un nickname:", err)
+			jsonResponse(w, http.StatusInternalServerError, "Internal Server Error")
+			return
+		}
+		userNicknames = append(userNicknames, UserNickname{Nickname: nickname})
+	}
+
+	jsonResponse2(w, http.StatusOK, userNicknames)
 }

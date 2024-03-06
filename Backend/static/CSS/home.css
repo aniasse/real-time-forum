@@ -13,6 +13,71 @@
     height: auto;
 }
 
+.homepage .fullScreenDiv {
+    position: fixed;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    left: 0;
+    top: 0;
+    background: rgba(51, 51, 51, 0.7);
+    z-index: 9999;
+}
+
+.homepage .loader {
+    width: 50px;
+    aspect-ratio: 1;
+    color: rgb(193, 191, 191);
+    background: currentColor;
+    border-radius: 50%;
+    position: relative;
+}
+
+.homepage .loader:before {
+    content: "";
+    position: absolute;
+    background:
+        radial-gradient(farthest-side at bottom right, #0000 94%, currentColor 96%) 0 0,
+        radial-gradient(farthest-side at bottom left, #0000 94%, currentColor 96%) 100% 0,
+        radial-gradient(farthest-side at top left, #0000 94%, currentColor 96%) 100% 100%,
+        radial-gradient(farthest-side at top right, #0000 94%, currentColor 96%) 0 100%;
+    background-size: 25px 25px;
+    background-repeat: no-repeat;
+    animation:
+        l39-1 1s infinite,
+        l39-2 1s infinite;
+}
+
+@keyframes l39-1 {
+
+    0%,
+    10%,
+    90%,
+    100% {
+        inset: 0
+    }
+
+    40%,
+    60% {
+        inset: -10px
+    }
+}
+
+@keyframes l39-2 {
+
+    0%,
+    40% {
+        transform: rotate(0)
+    }
+
+    60%,
+    100% {
+        transform: rotate(90deg)
+    }
+}
+
 .homepage header {
     margin: 10px;
     padding: 10px;
@@ -44,6 +109,7 @@
     align-items: center;
     justify-content: center;
     transform: rotate(-45deg);
+    margin: 5px;
 }
 
 .homepage .nav-content .toggle-btn,
@@ -249,7 +315,7 @@
 
 .homepage h6 {
     font-style: italic;
-    font-size: 10px;
+    font-size: 15px;
     padding-top: 15px;
 }
 
@@ -257,33 +323,22 @@
     background-color: #111827;
     border: 1px solid transparent;
     border-radius: 60%;
-    box-sizing: border-box;
-    color: #FFFFFF;
-    cursor: pointer;
-    flex: 0 0 auto;
-    font-family: "Inter var", ui-sans-serif, system-ui, -apple-system, system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-    font-size: 1rem;
     font-weight: 600;
-    text-align: center;
-    text-decoration: none #6B7280 solid;
-    transition-duration: .2s;
-    transition-property: background-color, border-color, color, fill, stroke;
-    transition-timing-function: cubic-bezier(.4, 0, 0.2, 1);
-    -webkit-user-select: none;
-    user-select: none;
-    touch-action: manipulation;
-    width: auto;
+    padding-top: 10px;
+    color: white;    
+    cursor: pointer;
+    font-family: system-ui;
 }
 
 .homepage .create .button-create:hover {
     background-color: #374151;
 }
 
-.homepage .create .button-create:focus {
+/* .homepage .create .button-create:focus {
     box-shadow: none;
     outline: 2px solid transparent;
     outline-offset: 2px;
-}
+} */
 
 .homepage .createpost {
     position: absolute;
@@ -441,10 +496,13 @@
 }
 
 .homepage .posts .comment {
-    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 .homepage .posts .comment img {
+    cursor: pointer;
     width: 10%;
 }
 
@@ -456,13 +514,14 @@
     padding: 10px;
 }
 
-.homepage .comments .all-com{
+.homepage .comments .all-com {
     display: flex;
     flex-direction: column;
 }
 
 .homepage .comments .all-com .usr {
     display: flex;
+    flex-direction: column;
 }
 
 .homepage .comments .all-com p {
@@ -608,12 +667,12 @@
     resize: none;
 }
 
-.homepage .to-send .send{
+.homepage .to-send .send {
     cursor: pointer;
     text-align: center;
 }
 
-.homepage .to-send .send img{
+.homepage .to-send .send img {
     margin-top: 5px;
     width: 15%;
 }

@@ -6,24 +6,24 @@ import (
 	"strconv"
 )
 
-func enableCORS(w http.ResponseWriter) {
-	w.Header().Set("Content-Type", "application/json")
-	// w.Header().Set("Access-Control-Allow-Origin", "http://127.0.0.1:5500")
-	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-	w.Header().Set("Access-Control-Allow-Credentials", "true")
-}
+// func enableCORS(w http.ResponseWriter) {
+// 	w.Header().Set("Content-Type", "application/json")
+// 	// w.Header().Set("Access-Control-Allow-Origin", "http://127.0.0.1:5500")
+// 	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE")
+// 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+// 	w.Header().Set("Access-Control-Allow-Credentials", "true")
+// }
 
-func corsMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		enableCORS(w)
-		if r.Method == http.MethodOptions {
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
-}
+// func corsMiddleware(next http.Handler) http.Handler {
+// 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+// 		enableCORS(w)
+// 		if r.Method == http.MethodOptions {
+// 			w.WriteHeader(http.StatusOK)
+// 			return
+// 		}
+// 		next.ServeHTTP(w, r)
+// 	})
+// }
 
 func Router() {
 	// Serveur HTTP
@@ -37,9 +37,14 @@ func Router() {
 	// Endpoints
 	http.HandleFunc("/", handleFirstPage)
 	http.HandleFunc("/api/activeSession", handleActiveSession)
+	http.HandleFunc("/api/login", handleLogin)
+	http.HandleFunc("/api/register", handleRegister)
+	http.HandleFunc("/api/posts", handleGetPosts)
 	http.HandleFunc("/api/users/", handleUserRequest)
-	http.HandleFunc("/api/login", HandleLogin)
-	http.HandleFunc("/api/register", HandleRegister)
+	http.HandleFunc("/api/createPost", handleCreatingPost)
+	http.HandleFunc("/api/comment", handleComment)
+	http.HandleFunc("/api/getComments", handleGetComments)
+	http.HandleFunc("/api/getUsers", handleGetUsers)
 	// server.HandleFunc("/api/checksession", HandleCheckSession)
 }
 

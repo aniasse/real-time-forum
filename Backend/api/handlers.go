@@ -19,12 +19,24 @@ import (
 
 type Response struct {
 	Exist        bool   `json:"exist"`
+	HomeHead     string `json:"homeHead"`
 	HomePage     string `json:"homePage"`
-	SignUpSignIn string `json:"signUpsignIn"`
+	SignHead     string `json:"signHead"`
+	SignUpSignIn string `json:"signUpIn"`
+	NickName     string `json:"nickname"`
 }
 
 type CookieData struct {
 	CookieValue string `json:"cookieValue"`
+}
+
+type PostWithUser struct {
+	ID       int    `json:"id"`
+	UserID   string `json:"userId"`
+	Category string `json:"category"`
+	Content  string `json:"content"`
+	Date     string `json:"date"`
+	Nickname string `json:"nickname"`
 }
 
 // var HomeHead = `<head>
@@ -53,7 +65,7 @@ type CookieData struct {
 // </head>
 //    <script src="/static/JS/sign.js"></script>
 
-var HomeHead = `<head>
+var Homehead = `<head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="https://unicons.iconscout.com/release/v2.1.6/css/unicons.css" />
@@ -73,18 +85,18 @@ var Home = `<body>
                     <i class='bx bx-plus'></i>
                 </div>
                 <span class="first">
-                    <a href=""><i class='bx bxs-home'></i></a>
+                    <a href="#"><i class='bx bxs-home'></i></a>
                 </span>
                 <span class="second">
-                    <a href=""><i class='bx bxs-message-alt'></i></a>
+                    <a href="#"><i class='bx bxs-message-alt'></i></a>
                 </span>
                 <span class="thirth">
-                    <a href=""><i class='bx bxs-bell'></i></a>
+                    <a href="#"><i class='bx bxs-bell'></i></a>
                 </span>
             </div>
         </nav>
         <div class="navigation">
-            <a class="button" href="">
+            <a class="button" href="#">
                 <img src="./static/images/user.png" alt="logout">
                 <div class="logout">LOGOUT</div>
             </a>
@@ -170,7 +182,6 @@ var Home = `<body>
                     </div>
                     <h6>Xander</h6>
                 </div>
-                <div></div>
                 <button class="button-create">Create</button>
             </div>
             <div class="createpost">
@@ -179,7 +190,7 @@ var Home = `<body>
                 </div>
                 <div class="categories">
                     <div class="box">
-                        <select>
+                        <select id="categorie">
                             <option>News</option>
                             <option>Tech</option>
                             <option>Computing</option>
@@ -191,7 +202,7 @@ var Home = `<body>
                 <div class="topost">
                     <textarea aria-label="#" name="post" id="post" placeholder="What's happening"></textarea>
                 </div>
-                <button class="sub">Post</button>
+                <button class="sub" id="postButton">Post</button>
             </div>
             <div class="post">
                 <div class="poster">
@@ -209,35 +220,35 @@ var Home = `<body>
                 </div>
                 <div class="comment">
                     <img src="./static/images/comment.png" alt="">
+                    <div class="comments">
+                        <div class="all-com">
+                            <div class="usr">
+                                <div class="profil-pic">
+                                    <img src="./static/images/user.png" alt="">
+                                </div>
+                                <h6>Username</h6>
+                            </div>
+                            <p>Great</p>
+                            <div class="usr">
+                                <div class="profil-pic">
+                                    <img src="./static/images/user.png" alt="">
+                                </div>
+                                <h6>Username</h6>
+                            </div>
+                            <p>Great</p>
+                            <div class="usr">
+                                <div class="profil-pic">
+                                    <img src="./static/images/user.png" alt="">
+                                </div>
+                                <h6>Username</h6>
+                            </div>
+                            <p>Great</p>
+                        </div>
+                        <div class="tocom">
+                            <textarea aria-label="#" name="com" id="com" placeholder="comment..."></textarea>
+                            <button class="btn-com">Comment</button>
+                        </div>
                 </div>
-                <div class="comments">
-                    <div class="all-com">
-                        <div class="usr">
-                            <div class="profil-pic">
-                                <img src="./static/images/user.png" alt="">
-                            </div>
-                            <h6>Username</h6>
-                        </div>
-                        <p>Great</p>
-                        <div class="usr">
-                            <div class="profil-pic">
-                                <img src="./static/images/user.png" alt="">
-                            </div>
-                            <h6>Username</h6>
-                        </div>
-                        <p>Great</p>
-                        <div class="usr">
-                            <div class="profil-pic">
-                                <img src="./static/images/user.png" alt="">
-                            </div>
-                            <h6>Username</h6>
-                        </div>
-                        <p>Great</p>
-                    </div>
-                    <div class="tocom">
-                        <textarea aria-label="#" name="com" id="com" placeholder="comment..."></textarea>
-                        <button class="btn-com">Comment</button>
-                    </div>
                 </div>
             </div>
             <div class="post">
@@ -626,56 +637,64 @@ var Home = `<body>
     </div>
     </body>
 `
+var Signhead = `
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+	<link rel="stylesheet" href="/static/CSS/styles.css">
+	<title>Real Time Forum</title>
+</head>`
+
 var SignUpIn = `
 <body>
-	<!-- <div class="loader"></div> -->
-	<div class="container" id="container">
-    <div id="Message" class="Message"></div>
-		<div class="form-container sign-up">
-			<form id="registerForm">
-				<div class="title">Create Account</div>
-				<span>or use your email for registration</span>
-				<input id="nickname" type="text" name="pseudo" placeholder="Nickname">
-				<input id="firstname" type="text" name="firstName" placeholder="First Name">
-				<input id="lastname" type="text" name="lastName" placeholder="Last Name">
-				<input id="age" type="number" name="age" placeholder="Age">
-				<div class="gender">
-					<p>Gender</p>
-					<select id="gender" name="gender">
-						<option value="Male">Male</option>
-						<option value="Female">Female</option>
-					</select>
-				</div>
-				<input id="email" type="email" name="email" placeholder="Email">
-				<input id="password" type="password" name="password" placeholder="Password">
-				<button class="signup" disabled>Sign Up</button>
-			</form>
-		</div>
-		<div class="form-container sign-in">
-			<form id="loginForm">
-				<h1>Sign In</h1>
-				<span>or use your email password</span>
-				<input id="loginMail" type="email" placeholder="Email">
-				<input id="loginPassword" type="password" placeholder="Password">
-				<button>Sign In</button>
-			</form>
-		</div>
-		<div class="toggle-container">
-			<div class="toggle">
-				<div class="toggle-panel toggle-left">
-					<h1>Welcome Back!</h1>
-					<p>Enter your personal details to use all of site features</p>
-					<button class="hidden" id="login">Sign In</button>
-				</div>
-				<div class="toggle-panel toggle-right">
-					<h1>Hello, Friend!</h1>
-					<p>Register with your personal details to use all of site features</p>
-					<button class="hidden" id="register">Sign Up</button>
-				</div>
-			</div>
-		</div>
-	</div>
-    </body>
+    <div class="container" id="container">
+        <div id="Message" class="Message"></div>
+        <div class="form-container sign-up">
+            <form id="registerForm">
+                <div class="title">Create Account</div>
+                <span>or use your email for registration</span>
+                <input id="nickname" type="text" name="pseudo" placeholder="Nickname">
+                <input id="firstname" type="text" name="firstName" placeholder="First Name">
+                <input id="lastname" type="text" name="lastName" placeholder="Last Name">
+                <input id="age" type="number" name="age" placeholder="Age">
+                <div class="gender">
+                    <p>Gender</p>
+                    <select id="gender" name="gender">
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                    </select>
+                </div>
+                <input id="email" type="email" name="email" placeholder="Email">
+                <input id="password" type="password" name="password" placeholder="Password">
+                <button class="signup" disabled>Sign Up</button>
+            </form>
+        </div>
+        <div class="form-container sign-in">
+            <form id="loginForm">
+                <h1>Sign In</h1>
+                <span>or use your email password</span>
+                <input id="loginMail" type="email" placeholder="Email">
+                <input id="loginPassword" type="password" placeholder="Password">
+                <button>Sign In</button>
+            </form>
+        </div>
+        <div class="toggle-container">
+            <div class="toggle">
+                <div class="toggle-panel toggle-left">
+                    <h1>Welcome Back!</h1>
+                    <p>Enter your personal details to use all of site features</p>
+                    <button class="hidden" id="login">Sign In</button>
+                </div>
+                <div class="toggle-panel toggle-right">
+                    <h1>Hello, Friend!</h1>
+                    <p>Register with your personal details to use all of site features</p>
+                    <button class="hidden" id="register">Sign Up</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
 `
 
 var ErrorPage = `<html lang="en">
@@ -788,6 +807,15 @@ func extractIDFromPath(path string) int {
 	return id
 }
 
+func handleFirstPage(w http.ResponseWriter, r *http.Request) {
+	err := renderTemplateWithLayout(w)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		fmt.Println(err)
+		return
+	}
+}
+
 func CheckActiveSession(r *http.Request) (*models.Users, bool) {
 	var user *models.Users
 	var data CookieData
@@ -806,15 +834,6 @@ func CheckActiveSession(r *http.Request) (*models.Users, bool) {
 	return user, true
 }
 
-func handleFirstPage(w http.ResponseWriter, r *http.Request) {
-	err := renderTemplateWithLayout(w)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		fmt.Println(err)
-		return
-	}
-}
-
 func handleActiveSession(w http.ResponseWriter, r *http.Request) {
 	var res Response
 	var user *models.Users
@@ -826,36 +845,28 @@ func handleActiveSession(w http.ResponseWriter, r *http.Request) {
 		return
 	} else {
 		user, exist = CheckActiveSession(r)
-
+		nickname := ""
 		if user == nil {
 			exist = false
+		} else {
+			nickname = user.Nickname
 		}
 
 		res = Response{
 			Exist:        exist,
+			HomeHead:     Homehead,
 			HomePage:     Home,
+			SignHead:     Signhead,
 			SignUpSignIn: SignUpIn,
+			NickName:     nickname,
 		}
 
-		// // Définissez le type de contenu de la réponse comme JSON
-		// w.Header().Set("Content-Type", "application/json")
-
-		// // Écrire les données JSON dans le corps de la réponse
-
-		// jsonData, err := json.Marshal(res)
-
-		// if err != nil {
-		// 	jsonResponse(w, http.StatusInternalServerError, "Internal Server Error")
-		// 	return
-		// }
-		// w.Write(jsonData)
 		jsonResponse2(w, http.StatusOK, res)
-
 	}
 }
 
 // Gestionnaire pour la connexion des utilisateurs
-func HandleLogin(w http.ResponseWriter, r *http.Request) {
+func handleLogin(w http.ResponseWriter, r *http.Request) {
 
 	var user models.Users
 	var login models.Register
@@ -919,7 +930,7 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 		UserID:        user.ID,
 		SessionExpiry: sessionExpiry,
 		HomePage:      Home,
-		HomeHead:      HomeHead,
+		HomeHead:      Homehead,
 	}
 
 	jsonResponse2(w, http.StatusOK, response)

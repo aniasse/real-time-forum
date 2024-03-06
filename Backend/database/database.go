@@ -48,22 +48,21 @@ func createTables(db *sql.DB) {
 		);
 
 		CREATE TABLE IF NOT EXISTS posts (
-            Id TEXT PRIMARY KEY ,
+			Id INTEGER PRIMARY KEY AUTOINCREMENT,			
 			UserId TEXT NOT NULL,
-            Title TEXT NOT NULL,
-            CreatedAt DATETIME NOT NULL,
+			Category TEXT NOT NULL,
             Content TEXT NOT NULL,
-            Date DATETIME NOT NULL,
+            Date TEXT NOT NULL,
 			FOREIGN KEY(UserId) REFERENCES users(Id)
 			ON DELETE CASCADE
 			ON UPDATE CASCADE
 		);
 
 		CREATE TABLE IF NOT EXISTS comments (
-            Id TEXT PRIMARY KEY ,
-            UserId TEXT NOT NULL,
+			Id INTEGER PRIMARY KEY AUTOINCREMENT,            
+			UserId TEXT NOT NULL,
             PostId TEXT NOT NULL,
-            CreatedAt DATETIME NOT NULL,
+            Content TEXT NOT NULL,
 			FOREIGN KEY(UserId) REFERENCES users(Id)
 			FOREIGN KEY(PostId) REFERENCES posts(Id)
 			ON DELETE CASCADE

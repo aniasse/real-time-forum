@@ -12,21 +12,22 @@ function loadScript(scriptUrl) {
 
     const script = document.createElement('script');
     script.src = scriptUrl;
-    document.head.appendChild(script);
+    document.body.appendChild(script);
+    console.log("added");
 }
 
-const container = document.getElementById('container');
-const registerBtn = document.getElementById('register');
-const loginBtn = document.getElementById('login');
-const loginForm = document.getElementById('loginForm');
-const registerForm = document.getElementById('registerForm');
+// const container = document.getElementById('container');
+// const registerBtn = document.getElementById('register');
+// const loginBtn = document.getElementById('login');
+// const loginForm = document.getElementById('loginForm');
+// const registerForm = document.getElementById('registerForm');
 
 
-registerBtn.addEventListener('click', () => {
-    container.classList.add("active");
+document.getElementById('register').addEventListener('click', () => {
+    document.getElementById('container').classList.add("active");
 });
-loginBtn.addEventListener('click', () => {
-    container.classList.remove("active");
+document.getElementById('login').addEventListener('click', () => {
+    document.getElementById('container').classList.remove("active");
 });
 
 // Définir les expressions régulières pour chaque champ
@@ -76,16 +77,16 @@ button.addEventListener('mouseover', function () {
     }
 });
 
-var Head = `<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="stylesheet" href="https://unicons.iconscout.com/release/v2.1.6/css/unicons.css" />
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
-<link href='https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css' rel='stylesheet'>
-<script src='https://kit.fontawesome.com/a076d05399.js' crossorigin='anonymous'></script>
-<link rel="stylesheet" href="/static/CSS/home.css">
-<title>Real Time Forum</title>
-</head>`
+// var Head = `<head>
+// <meta charset="UTF-8">
+// <meta name="viewport" content="width=device-width, initial-scale=1.0">
+// <link rel="stylesheet" href="https://unicons.iconscout.com/release/v2.1.6/css/unicons.css" />
+// <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+// <link href='https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css' rel='stylesheet'>
+// <script src='https://kit.fontawesome.com/a076d05399.js' crossorigin='anonymous'></script>
+// <link rel="stylesheet" href="/static/CSS/home.css">
+// <title>Real Time Forum</title>
+// </head>`
 
 function deleteCookie(name) {
     document.cookie = name + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
@@ -101,15 +102,38 @@ function createCookie(name, value, exp) {
     document.cookie = name + "=" + value + expiration + "; path=/";
 }
 
+// //Ajout de la class homepage a html
+const addingHtmlClass = () => {
+    // Sélection de la balise <html>
+    const htmlElement = document.querySelector('html');
+
+    if (!htmlElement.classList.contains('homepage')) htmlElement.classList.add('homepage');
+}
+//Ajout du Head 
+const addinghead = (data) => {
+    const newHead = document.createElement('head');
+    const oldHead = document.querySelector('head');
+    newHead.innerHTML = data.homeHead;
+    document.documentElement.replaceChild(newHead, oldHead);
+}
+
+//Ajout du body
+const addingbody = (data) => {
+    document.body.innerHTML = '';
+    document.body.insertAdjacentHTML('afterbegin', data.homePage);
+    loadScript('/static/JS/home.js');
+}
+
 //Login
-loginForm.addEventListener('submit', async (event) => {
+document.getElementById('loginForm').addEventListener('submit', async (event) => {
+    console.log('enter');
     event.preventDefault();
     const email = document.getElementById('loginMail').value;
     const password = document.getElementById('loginPassword').value;
     console.log(email, password);
     printLoader(false);
     try {
-        const response = await fetch('http://localhost:8080/api/login', {
+        const response = await fetch('/api/login', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -118,46 +142,27 @@ loginForm.addEventListener('submit', async (event) => {
         });
 
         const data = await response.json();
+        console.log("login", data);
         if (data.Status === 201) {
-            setTimeout(() => {
+            setTimeout(()=> {
                 addingHtmlClass();
-                addingHead();
-                addingBody(data);
-            }, 1500);
-            createCookie("sessionID", data.ID, 7)
-            return
+                addinghead(data);
+                addingbody(data);
+                createCookie("sessionID", data.userID, 7)
+            },1500)
+        }else{
+            messageToPrint(data);
         }
-        messageToPrint(data);
 
     } catch (error) {
         console.error('Login error:', error);
     }
 });
 
-//Ajout de la class homepage a html
-const addingHtmlClass = () => {
-    // Sélection de la balise <html>
-    const htmlElement = document.querySelector('html');
-    
-    if (!htmlElement.classList.contains('homepage')) htmlElement.classList.add('homepage');
-}
-//Ajout du Head 
-const addingHead = () => {
-    const newHead = document.createElement('head');
-    const oldHead = document.querySelector('head');
-    newHead.innerHTML = Head;
-    document.documentElement.replaceChild(newHead, oldHead);
-}
 
-//Ajout du body
-const addingBody = (data) => {
-    document.body.innerHTML = '';
-    document.body.insertAdjacentHTML('afterbegin', data.homePage);
-    loadScript('/static/JS/home.js');
-}
 
 //Print loader
-const printLoader = (validForm) => {
+let printLoader = (validForm) => {
     let div = document.createElement('div');
     let loader = document.createElement('div')
     div.classList = 'fullScreenDiv';
@@ -171,8 +176,7 @@ const printLoader = (validForm) => {
 }
 
 //Register
-
-registerForm.addEventListener('submit', async (event) => {
+document.getElementById('registerForm').addEventListener('submit', async (event) => {
     event.preventDefault();
 
     printLoader(true);
@@ -189,7 +193,7 @@ registerForm.addEventListener('submit', async (event) => {
     console.log(email, password);
 
     try {
-        const response = await fetch('http://localhost:8080/api/register', {
+        const response = await fetch('api/register', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -215,7 +219,7 @@ const messageToPrint = (data) => {
         toPrint.style.visibility = 'visible';
         setTimeout(() => {
             toPrint.style.visibility = 'hidden';
-            if (data.Status !== 201) return
+            if (data.status !== 201) return
             container.classList.remove("active");
             inputs.forEach(input => {
                 input.value = '';
