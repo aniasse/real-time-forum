@@ -32,3 +32,103 @@
         }
     ]
 }
+
+
+
+.homepage .sms {
+    width: 300px;
+    margin: 15px;
+    display: flex;
+    flex-direction: column;
+    border-radius: 10px;
+    background-color: #d1cdcd;
+}
+
+.homepage .sms .usr {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    gap: 10px;
+}
+
+.homepage .sms .usr img {
+    padding-top: 5px;
+    width: 50px;
+}
+
+.homepage .sms .usr .goback {
+    padding-left: 3px;
+    padding-right: 20px;
+    cursor: pointer;
+}
+
+.homepage .sms .stat {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 3px solid white;
+    background: green;
+    margin-left: 10px;
+}
+
+.homepage .sms .discus {
+    height: 320px;
+    background-color: #e7e7e7;
+    border-radius: 10px;
+    padding: 10px;
+    overflow: scroll;
+    display: flex;
+    flex-direction: column;
+    margin: 10px;
+    gap: 10px;
+}
+
+.homepage .sms .discus .from-exp {
+    width: 50%;
+    background-color: #a8abb0;
+    padding: 10px;
+    text-align: left;
+    border-radius: 20px 20px 20px 0px;
+}
+
+.homepage .sms .discus .from-usr {
+    text-align: right;
+    min-width: 50%;
+    margin-left: 43%;
+    padding: 10px;
+    background-color: #fff;
+    border-radius: 20px 20px 0 20px;
+}
+
+.homepage .sms .sms-date {
+    /* position: absolute; */
+    bottom: 5px;
+    right: 10px;
+    font-size: 10px;
+    color: #1a1919;
+}
+
+.homepage .sms .to-send {
+    display: flex;
+    align-items: center;
+    border-radius: 10px;
+    padding: 15px;
+}
+
+.homepage .sms .to-send img {
+    cursor: pointer;
+    width: 12%;
+}
+
+.homepage .sms .to-send textarea {
+    width: 85%;
+    height: 50px;
+    padding: 2px 2px;
+    margin: 0px 5px;
+    box-sizing: border-box;
+    border: 2px solid rgb(193, 191, 191);
+    border-radius: 10px;
+    background-color: #f8f8f8;
+    font-size: 16px;
+    resize: none;
+}

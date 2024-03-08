@@ -32,12 +32,12 @@ document.getElementById('login').addEventListener('click', () => {
 
 // Définir les expressions régulières pour chaque champ
 const regexMap = {
-    pseudo: /^[a-zA-Z0-9]{4,}$/,
+    pseudo: /^[a-zA-Z0-9]{4,8}$/,
     firstName: /^[a-zA-Z]{2,}$/,
     lastName: /^[a-zA-Z]{2,}$/,
     age: /^(1[4-9]|[2-5][0-9]|60)$/,
     email: /^[\w-]+(\.[\w-]+)*@([\w-]+\.)+[a-zA-Z]{2,7}$/,
-    password: /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}$/,
+    password: /^[!-~]{4,}$/,
 };
 
 // Récupérer tous les champs du formulaire

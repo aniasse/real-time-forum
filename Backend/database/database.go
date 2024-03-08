@@ -76,6 +76,16 @@ func createTables(db *sql.DB) {
 			FOREIGN KEY(UserId) REFERENCES users(Id) ON DELETE CASCADE ON UPDATE CASCADE
 		);
 
+		CREATE TABLE IF NOT EXISTS messages (
+			Id INTEGER PRIMARY KEY AUTOINCREMENT,
+			SenderId TEXT NOT NULL,
+			ReceiverId TEXT NOT NULL,
+			Content TEXT NOT NULL,
+			Date DATETIME DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY(SenderId) REFERENCES users(Id),
+			FOREIGN KEY(ReceiverId) REFERENCES users(Id)
+		);
+
 		Create TABLE IF NOT EXISTS categories (
 			PostId TEXT NOT NULL,
 			Category TEXT NOT NULL,

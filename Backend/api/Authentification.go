@@ -53,6 +53,43 @@ func HandleCheckSession(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// Expressions régulières pour la validation
+var regexMap = map[string]*regexp.Regexp{
+	"nickname":  regexp.MustCompile(`^[a-zA-Z0-9]{4,8}$`),
+	"firstName": regexp.MustCompile(`^[a-zA-Z]{2,}$`),
+	"lastName":  regexp.MustCompile(`^[a-zA-Z]{2,}$`),
+	"age":       regexp.MustCompile(`^(1[4-9]|[2-5][0-9]|60)$`),
+	"email":     regexp.MustCompile(`^[\w-]+(\.[\w-]+)*@([\w-]+\.)+[a-zA-Z]{2,7}$`),
+	"password":  regexp.MustCompile(`^[!-~]{4,}$`),
+	"gender":    regexp.MustCompile(`^(Male|Female)$`),
+}
+
+// Fonction pour valider les données utilisateur
+func validateUserData(user models.Users) error {
+	if !regexMap["nickname"].MatchString(user.Nickname) {
+		return fmt.Errorf("invalid nickname format ❌")
+	}
+	if !regexMap["firstName"].MatchString(user.Firstname) {
+		return fmt.Errorf("invalid first name format ❌")
+	}
+	if !regexMap["lastName"].MatchString(user.Lastname) {
+		return fmt.Errorf("invalid last name format ❌")
+	}
+	if !regexMap["age"].MatchString(user.Age) {
+		return fmt.Errorf("invalid age format ❌")
+	}
+	if !regexMap["email"].MatchString(user.Email) {
+		return fmt.Errorf("invalid email format ❌")
+	}
+	if !regexMap["password"].MatchString(user.Password) {
+		return fmt.Errorf("invalid password format ❌")
+	}
+	if !regexMap["gender"].MatchString(user.Gender) {
+		return fmt.Errorf("invalid gender value ❌")
+	}
+	return nil
+}
+
 // Gestionnaire pour l'inscription des utilisateurs
 func handleRegister(w http.ResponseWriter, r *http.Request) {
 	var newUser models.Users
@@ -65,6 +102,13 @@ func handleRegister(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(&newUser); err != nil {
 		jsonResponse(w, http.StatusBadRequest, "Bad Request")
 		fmt.Println("Les données d'inscription sont invalides: ", http.StatusBadRequest)
+		return
+	}
+
+	// Valider les données de l'utilisateur
+	if err := validateUserData(newUser); err != nil {
+		jsonResponse(w, http.StatusBadRequest, err.Error())
+		fmt.Println("Erreur de validation des données d'utilisateur:", err)
 		return
 	}
 
@@ -191,7 +235,7 @@ func handleCreatingPost(w http.ResponseWriter, r *http.Request) {
 		newPost.UserId, newPost.Category, newPost.PostContent, date)
 
 	if err != nil {
-		fmt.Println(err) // Journalisation de l'erreur pour le débogage
+		fmt.Println(err)
 		jsonResponse(w, http.StatusInternalServerError, "Internal Server Error")
 		fmt.Println("Erreur lors de l'enregistrement de l'utilisateur: ", err)
 		return
@@ -358,7 +402,7 @@ type UserNickname struct {
 }
 
 type User struct {
-	UserId string `json:"Id"`
+	UserId string `json:"UserId"`
 }
 
 func handleGetUsers(w http.ResponseWriter, r *http.Request) {
@@ -374,6 +418,8 @@ func handleGetUsers(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("Erreur lors de la réception des données utilisateur:", err)
 		return
 	}
+
+	fmt.Println(user.UserId)
 
 	// Récupérer tous les nicknames sauf celui de l'utilisateur spécifié
 	query := `
@@ -402,4 +448,92 @@ func handleGetUsers(w http.ResponseWriter, r *http.Request) {
 	}
 
 	jsonResponse2(w, http.StatusOK, userNicknames)
+}
+
+type Message struct {
+	From string `json:"from"`
+	Text string `json:"text"`
+	Date string `json:"date"`
+}
+
+func handleGettingDiscus(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("handleGettingDiscus")
+
+	if r.Method != http.MethodPost {
+		jsonResponse(w, http.StatusMethodNotAllowed, "Method Not Allowed")
+		return
+	}
+
+	var requestBody struct {
+		UserId           string `json:"UserId"`
+		ReceiverNickname string `json:"ReceiverNickname"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
+		jsonResponse(w, http.StatusBadRequest, "Bad Request")
+		fmt.Println("Erreur lors du decodage", http.StatusBadRequest)
+		return
+	}
+
+	userId := requestBody.UserId
+	receiverNickname := requestBody.ReceiverNickname
+
+	// Vérifier si le ReceiverNickname existe dans la table users
+	var receiverID string
+	err := database.DB.QueryRow("SELECT Id FROM users WHERE Nickname = $1", receiverNickname).Scan(&receiverID)
+	if err != nil {
+		jsonResponse(w, http.StatusBadRequest, "ReceiverNickname does not exist")
+		fmt.Println("ReceiverNickname does not exist:", err)
+		return
+	}
+
+	// Vérifier si le ReceiverNickname est différent du Nickname du UserId
+	if receiverID == userId {
+		jsonResponse(w, http.StatusBadRequest, "ReceiverNickname cannot be the same as UserId")
+		fmt.Println("ReceiverNickname cannot be the same as UserId")
+		return
+	}
+
+	// Query pour récupérer les messages de la base de données
+	query := `
+		SELECT SenderId, ReceiverId, Content, Date
+		FROM messages
+		WHERE (SenderId = $1 AND ReceiverId = $2)
+			OR (ReceiverId = $1 AND SenderId = $2)
+		ORDER BY Date
+	`
+	rows, err := database.DB.Query(query, userId, receiverID)
+	if err != nil {
+		fmt.Println("Erreur lors de la récupération des messages:", err)
+		jsonResponse(w, http.StatusInternalServerError, "Internal Server Error")
+		return
+	}
+	defer rows.Close()
+
+	var messages []Message
+	for rows.Next() {
+		var senderID, receiverID, content, date string
+		err := rows.Scan(&senderID, &receiverID, &content, &date)
+		if err != nil {
+			fmt.Println("Erreur lors de l'insertion des données dans les variables:", err)
+			jsonResponse(w, http.StatusInternalServerError, "Internal Server Error")
+			return
+		}
+
+		// Déterminer la provenance du message
+		from := "notUser"
+		if senderID == userId {
+			from = "user"
+		}
+
+		// Créer un objet Message
+		msg := Message{
+			From: from,
+			Text: content,
+			Date: date,
+		}
+
+		messages = append(messages, msg)
+	}
+
+	jsonResponse2(w, http.StatusOK, messages)
 }

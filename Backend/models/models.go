@@ -9,7 +9,7 @@ type Users struct {
 	Lastname      string
 	Email         string
 	Gender        string
-	Age           int
+	Age           string
 	Password      string
 	SessionExpiry string
 }

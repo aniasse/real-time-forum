@@ -106,10 +106,10 @@ async function init() {
         loadScript('/static/JS/sign.js');
     }
 
-    viewPostBox()
-    createAPost()
-    viewComments()
-    getUsers()
+    viewPostBox();
+    createAPost();
+    viewComments();
+    getUsers();
 }
 
 init();
@@ -168,7 +168,7 @@ const viewComments = async () => {
 
                 const comments = await response.json();
 
-                commentsDiv.innerHTML = ''; // Nettoyer la division des commentaires
+                commentsDiv.innerHTML = '';
 
                 if (comments.length === 0) {
                     commentsDiv.innerHTML = '<p>No comments yet.</p>';
@@ -193,7 +193,7 @@ const viewComments = async () => {
                         img.src = './static/images/user.png';
                         profilPic.appendChild(img);
 
-                        const username = document.createElement('h6');
+                        const username = document.createElement('h5');
                         username.textContent = comment.username;
 
                         commentDiv.appendChild(profilPic);
@@ -275,19 +275,6 @@ const postComment = () => {
         });
     });
 }
-
-
-
-//Messages
-// const messages = document.querySelectorAll('.messages .usr')
-// const discus = document.querySelectorAll('.discus')
-
-// messages.forEach((mes, i) => {
-//     mes.addEventListener('click', () => {
-//         if (discus[i].style.display === 'none' || discus[i].style.display === '') discus[i].style.display = 'flex';
-//         else discus[i].style.display = 'none';
-//     })
-// })
 
 
 //Responsivity
@@ -465,11 +452,6 @@ const messageToShow = (data) => {
         toPrint.style.visibility = 'visible';
         setTimeout(() => {
             toPrint.style.visibility = 'hidden';
-            if (data.status !== 201) return
-            container.classList.remove("active");
-            inputs.forEach(input => {
-                input.value = '';
-            })
         }, 1000)
     }, 500);
 }
@@ -490,7 +472,6 @@ const printCharging = () => {
 
 
 //Get Users for Messages
-
 async function getUsers() {
     const sessionResult = await checkSession();
     const userId = getCookieValue("sessionID");
@@ -531,17 +512,15 @@ async function getUsers() {
             const userDiv = `
                 <div class="message">
                     <div class="usr">
-                        <div class="inf">
-                            <div class="profil-pic"><img src="./static/images/user.png" alt=""></div>
-                            <div>${user.nickname}</div>
-                        </div>
+                        <img src="./static/images/user.png" alt="">
+                        <p>${user.nickname}</p>
                         <div class="stat"></div>
                     </div>
-                    <div class="discus"></div>
                 </div>
             `;
             messages.insertAdjacentHTML('beforeend', userDiv);
         });
+        getDiscutions();
 
     } catch (error) {
         console.error("Erreur lors de la récupération des utilisateurs:", error);
@@ -549,3 +528,102 @@ async function getUsers() {
     }
 }
 
+
+async function getDiscutions() {
+    const discussions = document.querySelectorAll('.messages .message');
+    console.log(discussions);
+
+    discussions.forEach(discus => {
+        console.log(discus);
+        discus.addEventListener('click', async () => {
+            const sessionResult = await checkSession();
+            const userId = getCookieValue("sessionID");
+
+            if (!sessionResult.exist || userId === "") {
+                // Redirection vers la page de connexion
+                return;
+            }
+
+            const nickname = discus.querySelector('.usr p').textContent;
+
+            try {
+                const response = await fetch(`/api/getDiscussions`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ UserId: userId, ReceiverNickname: nickname })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Erreur réseau : ' + response.status);
+                }
+
+                const messages = await response.json();
+                let fullDiv = document.querySelector('.fullScreenDiv');
+                if (!fullDiv) {
+                    fullDiv = document.createElement('div');
+                    fullDiv.className = 'fullScreenDiv';
+                }
+                fullDiv.innerHTML = '';
+
+                let sms = document.createElement('div')
+                sms.className = 'sms'
+                let smsInner = `
+                <div class="usr">
+                    <img src="./static/images/goback.png" class="goback" alt="">
+                    <img src="./static/images/user.png" alt="">
+                    <p>${nickname}</p>
+                    <div class="stat"></div>
+                </div>
+                `
+                sms.insertAdjacentHTML('beforeend', smsInner);
+
+                let writeSms = `
+                <div class="to-send">
+                    <textarea name="sms" id="sms" placeholder=" Type a message..."></textarea>
+                    <img src="./static/images/send.png" alt="" class="send">
+                </div>
+                `
+                let discus = document.createElement('div');
+                discus.className = 'discus';
+
+                if (messages) {
+                    messages.forEach(message => {
+                        let msgDiv = document.createElement('div')
+                        msgDiv.className = message.from === 'user' ? 'from-user' : 'from-exp'
+
+                        const messageText = document.createTextNode(message.text);
+                        const messageDate = document.createElement('p');
+
+                        messageDate.className = 'sms-date';
+                        messageDate.textContent = message.date;
+
+                        msgDiv.appendChild(messageText);
+                        msgDiv.appendChild(messageDate);
+
+                        discus.appendChild(msgDiv);
+                    });
+                }
+
+                sms.append(discus)
+                sms.innerHTML += writeSms
+                fullDiv.appendChild(sms)
+
+                // Ajouter le fullDiv à un conteneur existant dans votre page
+                document.body.appendChild(fullDiv);
+
+                // Ajouter l'événement pour vider fullDiv en cliquant sur l'image .goback
+                const gobackImg = fullDiv.querySelector('.goback');
+                if (gobackImg) {
+                    gobackImg.addEventListener('click', () => {
+                        document.body.removeChild(fullDiv);
+                    });
+                }
+
+            } catch (error) {
+                console.log("Error: ", error);
+            }
+        });
+    });
+}
