@@ -906,7 +906,7 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
 
 	sessionID, err1 := uuid.NewV4()
 	if err1 != nil {
-		// ...
+		fmt.Println(err1)
 	}
 
 	// Calcul de l'heure d'expiration de la session (15 minutes plus tard)
@@ -915,13 +915,13 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
 	// Mise à jour de l'identifiant de session et de l'heure d'expiration dans la base de données
 	_, err = database.DB.Exec("UPDATE users SET SessionExpiry = ? WHERE Id = ?", sessionExpiry, user.ID)
 	if err != nil {
-		// ...
+		fmt.Println(err)
 	}
 
 	// Insertion de la session dans la table sessions
 	_, err = database.DB.Exec("INSERT INTO sessions (ID, UserId, SessionExpiry) VALUES (?, ?, ?)", sessionID.String(), user.ID, sessionExpiry)
 	if err != nil {
-		// ...
+		fmt.Println(err)
 	}
 	response := LoginSuccessResponse{
 		Status:        201,
@@ -958,21 +958,21 @@ func renderTemplateWithLayout(w http.ResponseWriter) error {
 // 	return page.ExecuteTemplate(w, "", "")
 // }
 
-func errorPage(w http.ResponseWriter, i int) error {
-	DataError := struct {
-		Code    string
-		Message string
-	}{
-		Code:    strconv.Itoa(i),
-		Message: http.StatusText(i),
-	}
-	page, err := template.ParseFiles("Frontend/index.html")
-	if err != nil {
-		return err
-	}
-	w.WriteHeader(i)
-	return page.Execute(w, DataError)
-}
+// func errorPage(w http.ResponseWriter, i int) error {
+// 	DataError := struct {
+// 		Code    string
+// 		Message string
+// 	}{
+// 		Code:    strconv.Itoa(i),
+// 		Message: http.StatusText(i),
+// 	}
+// 	page, err := template.ParseFiles("Frontend/index.html")
+// 	if err != nil {
+// 		return err
+// 	}
+// 	w.WriteHeader(i)
+// 	return page.Execute(w, DataError)
+// }
 
 // if cookie, err := r.Cookie("sessionId"); err != nil {
 // 	exist = false
