@@ -15,8 +15,8 @@ type Users struct {
 }
 
 type Register struct {
-	Email    string
-	Password string
+	Credential string
+	Password   string
 }
 
 type Post struct {

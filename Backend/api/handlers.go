@@ -39,32 +39,6 @@ type PostWithUser struct {
 	Nickname string `json:"nickname"`
 }
 
-// var HomeHead = `<head>
-// <meta charset="UTF-8">
-// <meta name="viewport" content="width=device-width, initial-scale=1.0">
-// <link rel="stylesheet" href="https://unicons.iconscout.com/release/v2.1.6/css/unicons.css" />
-// <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
-// <link href='https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css' rel='stylesheet'>
-// <script src='https://kit.fontawesome.com/a076d05399.js' crossorigin='anonymous'></script>
-// <link rel="stylesheet" href="/static/CSS/home.css">
-// <title>Real Time Forum</title>
-// </head>`
-
-//Html
-//<!DOCTYPE html>
-//<html class="homepage" lang="en">
-// <head>
-//     <meta charset="UTF-8">
-//     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-//     <link rel="stylesheet" href="https://unicons.iconscout.com/release/v2.1.6/css/unicons.css" />
-//     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
-//     <link href='https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css' rel='stylesheet'>
-//     <script src='https://kit.fontawesome.com/a076d05399.js' crossorigin='anonymous'></script>
-// 	<link rel="stylesheet" href="/static/CSS/home.css">
-//     <title>Real Time Forum</title>
-// </head>
-//    <script src="/static/JS/sign.js"></script>
-
 var Homehead = `<head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -654,10 +628,10 @@ var SignUpIn = `
             <form id="registerForm">
                 <div class="title">Create Account</div>
                 <span>or use your email for registration</span>
-                <input id="nickname" type="text" name="pseudo" placeholder="Nickname">
+                <input id="nickname" type="text" name="pseudo" placeholder="Nickname (4 to 8 alpha-num chars)">
                 <input id="firstname" type="text" name="firstName" placeholder="First Name">
                 <input id="lastname" type="text" name="lastName" placeholder="Last Name">
-                <input id="age" type="number" name="age" placeholder="Age">
+                <input id="age" type="number" name="age" placeholder="Age (min age 14 max 60)">
                 <div class="gender">
                     <p>Gender</p>
                     <select id="gender" name="gender">
@@ -665,8 +639,8 @@ var SignUpIn = `
                         <option value="Female">Female</option>
                     </select>
                 </div>
-                <input id="email" type="email" name="email" placeholder="Email">
-                <input id="password" type="password" name="password" placeholder="Password">
+                <input id="email" type="text" name="email" placeholder="Email (ex: a1@gmail.com)">
+                <input id="password" type="password" name="password" placeholder="Password (min 4 chars, no spaces)">
                 <button class="signup" disabled>Sign Up</button>
             </form>
         </div>
@@ -674,7 +648,7 @@ var SignUpIn = `
             <form id="loginForm">
                 <h1>Sign In</h1>
                 <span>or use your email password</span>
-                <input id="loginMail" type="email" placeholder="Email">
+                <input id="loginMail" type="text" placeholder="Email">
                 <input id="loginPassword" type="password" placeholder="Password">
                 <button>Sign In</button>
             </form>
@@ -878,15 +852,20 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Recherche de l'utilisateur dans la base de données
-	err := database.DB.QueryRow("SELECT * FROM users WHERE Email = ?", login.Email).
+	// Recherche l'email de l'utilisateur dans la base de données
+	err := database.DB.QueryRow("SELECT * FROM users WHERE Email = ?", login.Credential).
 		Scan(&user.ID, &user.Nickname, &user.Firstname, &user.Lastname, &user.Email, &user.Gender, &user.Age, &user.Password, &user.SessionExpiry)
 
-	if err != nil {
-		if err == sql.ErrNoRows {
+	// Recherche le nickname de l'utilisateur dans la base de données
+	err1 := database.DB.QueryRow("SELECT * FROM users WHERE Nickname = ?", login.Credential).
+		Scan(&user.ID, &user.Nickname, &user.Firstname, &user.Lastname, &user.Email, &user.Gender, &user.Age, &user.Password, &user.SessionExpiry)
+
+	if err != nil && err1 != nil {
+		if err == sql.ErrNoRows && err1 == sql.ErrNoRows {
 			jsonResponse(w, http.StatusUnauthorized, "Bad Credentials ❌")
 			return
-		} else {
+		}
+		if err != sql.ErrNoRows && err1 != sql.ErrNoRows {
 			fmt.Println(err) // Journalisation de l'erreur pour le débogage
 			jsonResponse(w, http.StatusInternalServerError, "Internal Server Error")
 			return

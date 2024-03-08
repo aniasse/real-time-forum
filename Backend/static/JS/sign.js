@@ -118,7 +118,7 @@ document.getElementById('loginForm').addEventListener('submit', async (event) =>
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ Email: email, Password: password }),
+            body: JSON.stringify({ Credential: email, Password: password }),
         });
 
         const data = await response.json();
@@ -165,8 +165,8 @@ document.getElementById('registerForm').addEventListener('submit', async (event)
     const nickname = document.getElementById('nickname').value;
     const firstname = document.getElementById('firstname').value;
     const lastname = document.getElementById('lastname').value;
-    const age = document.getElementById('age').value;
-    const newAge = parseInt(age, 10);
+    const newAge = document.getElementById('age').value;
+    // const newAge = parseInt(age, 10);
     const gender = document.getElementById('gender').value;
 
 
