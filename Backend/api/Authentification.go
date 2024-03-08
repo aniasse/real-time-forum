@@ -419,8 +419,6 @@ func handleGetUsers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println(user.UserId)
-
 	// Récupérer tous les nicknames sauf celui de l'utilisateur spécifié
 	query := `
 		SELECT Nickname

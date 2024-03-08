@@ -13,14 +13,7 @@ function loadScript(scriptUrl) {
     const script = document.createElement('script');
     script.src = scriptUrl;
     document.body.appendChild(script);
-    console.log("added");
 }
-
-// const container = document.getElementById('container');
-// const registerBtn = document.getElementById('register');
-// const loginBtn = document.getElementById('login');
-// const loginForm = document.getElementById('loginForm');
-// const registerForm = document.getElementById('registerForm');
 
 
 document.getElementById('register').addEventListener('click', () => {
@@ -77,17 +70,6 @@ button.addEventListener('mouseover', function () {
     }
 });
 
-// var Head = `<head>
-// <meta charset="UTF-8">
-// <meta name="viewport" content="width=device-width, initial-scale=1.0">
-// <link rel="stylesheet" href="https://unicons.iconscout.com/release/v2.1.6/css/unicons.css" />
-// <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
-// <link href='https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css' rel='stylesheet'>
-// <script src='https://kit.fontawesome.com/a076d05399.js' crossorigin='anonymous'></script>
-// <link rel="stylesheet" href="/static/CSS/home.css">
-// <title>Real Time Forum</title>
-// </head>`
-
 function deleteCookie(name) {
     document.cookie = name + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
 }
@@ -126,11 +108,9 @@ const addingbody = (data) => {
 
 //Login
 document.getElementById('loginForm').addEventListener('submit', async (event) => {
-    console.log('enter');
     event.preventDefault();
     const email = document.getElementById('loginMail').value;
     const password = document.getElementById('loginPassword').value;
-    console.log(email, password);
     printLoader(false);
     try {
         const response = await fetch('/api/login', {
@@ -142,7 +122,6 @@ document.getElementById('loginForm').addEventListener('submit', async (event) =>
         });
 
         const data = await response.json();
-        console.log("login", data);
         if (data.Status === 201) {
             setTimeout(()=> {
                 addingHtmlClass();
@@ -190,7 +169,6 @@ document.getElementById('registerForm').addEventListener('submit', async (event)
     const newAge = parseInt(age, 10);
     const gender = document.getElementById('gender').value;
 
-    console.log(email, password);
 
     try {
         const response = await fetch('api/register', {
@@ -202,7 +180,6 @@ document.getElementById('registerForm').addEventListener('submit', async (event)
         });
 
         const data = await response.json();
-        console.log('Register success:', data);
         messageToPrint(data);
 
     } catch (error) {
@@ -210,7 +187,6 @@ document.getElementById('registerForm').addEventListener('submit', async (event)
     }
 });
 
-// });
 
 const messageToPrint = (data) => {
     setTimeout(function () {
@@ -247,7 +223,6 @@ function validateForm() {
     var passwordValue = passwordElement.value;
     var genderVal = gender.value;
 
-    console.log(genderVal);
     // Vérifier chaque champ avec son expression régulière correspondante
     for (var key in regexMap) {
         var regex = regexMap[key];

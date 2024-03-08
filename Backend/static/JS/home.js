@@ -61,8 +61,24 @@ async function fetchAndDisplayPosts() {
     }
 }
 
+//Print loader
+const printCharging = () => {
+    let div = document.createElement('div');
+    let loader = document.createElement('div')
+    div.classList = 'fullScreenDiv';
+    loader.classList = 'loader'
+    div.appendChild(loader)
+    document.body.appendChild(div);
+    setTimeout(() => {
+        if (document.body.contains(div)) document.body.removeChild(div);
+    }, 1000);
+}
+
+printCharging();
+
 //On home.js load
 async function init() {
+
     const sessionResult = await checkSession();
 
     if (sessionResult.exist) {
@@ -112,6 +128,7 @@ async function init() {
     getUsers();
 }
 
+printCharging();
 init();
 
 //view post box
@@ -231,10 +248,7 @@ const viewComments = async () => {
 
 //Post a comment
 const postComment = () => {
-    console.log('a');
     const commentButtons = document.querySelectorAll('.btn-com');
-
-    console.log('b');
 
     commentButtons.forEach(button => {
         button.addEventListener('click', async () => {
@@ -435,11 +449,9 @@ const createAPost = () => {
                 }
                 messageToShow(data)
             } else {
-                console.log('Erreur de requete', response.status);
                 //Gestion d'erreur
             }
         } catch (error) {
-            console.log('Error', error);
         }
     })
 }
@@ -454,20 +466,6 @@ const messageToShow = (data) => {
             toPrint.style.visibility = 'hidden';
         }, 1000)
     }, 500);
-}
-
-
-//Print loader
-const printCharging = () => {
-    let div = document.createElement('div');
-    let loader = document.createElement('div')
-    div.classList = 'fullScreenDiv';
-    loader.classList = 'loader'
-    div.appendChild(loader)
-    document.body.appendChild(div);
-    setTimeout(() => {
-        if (document.body.contains(div)) document.body.removeChild(div);
-    }, 1000);
 }
 
 
@@ -531,10 +529,8 @@ async function getUsers() {
 
 async function getDiscutions() {
     const discussions = document.querySelectorAll('.messages .message');
-    console.log(discussions);
 
     discussions.forEach(discus => {
-        console.log(discus);
         discus.addEventListener('click', async () => {
             const sessionResult = await checkSession();
             const userId = getCookieValue("sessionID");
@@ -622,7 +618,7 @@ async function getDiscutions() {
                 }
 
             } catch (error) {
-                console.log("Error: ", error);
+                console.error("Error: getting Discuss", error);
             }
         });
     });
