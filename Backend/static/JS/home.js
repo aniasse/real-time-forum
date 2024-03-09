@@ -578,7 +578,7 @@ async function getDiscutions() {
                 let writeSms = `
                 <div class="to-send">
                     <textarea name="sms" id="sms" placeholder=" Type a message..."></textarea>
-                    <img src="./static/images/send.png" alt="" class="send">
+                    <img src="./static/images/send.png" alt="" id="send">
                 </div>
                 `
                 let discus = document.createElement('div');

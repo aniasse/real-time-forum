@@ -648,7 +648,7 @@ var SignUpIn = `
             <form id="loginForm">
                 <h1>Sign In</h1>
                 <span>or use your email password</span>
-                <input id="loginMail" type="text" placeholder="Email">
+                <input id="loginMail" type="text" placeholder="Email or Nickname">
                 <input id="loginPassword" type="password" placeholder="Password">
                 <button>Sign In</button>
             </form>
