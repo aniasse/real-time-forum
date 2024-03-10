@@ -1,3 +1,79 @@
+async function gettingErrorPage(status, message) {
+
+    try {
+        const response = await fetch('/api/handleError', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ Status: status, Message: message })
+        })
+
+        const data = await response.json();
+
+        return { status: data.status, message: data.message }
+
+    } catch (error) {
+        console.log("error", error);
+        handleError(error)
+    }
+}
+
+//
+async function handleError(error) {
+    console.error('Error:', error);
+
+    let data; // Variable pour stocker les données d'erreur
+
+    // Gérer différents types d'erreurs
+    if (error.response) {
+        switch (error.response.status) {
+            case 404:
+                data = await gettingErrorPage("404", "Page Not Found");
+                break;
+            case 405:
+                data = await gettingErrorPage("405", "Method Not Allowed");
+                break;
+            case 400:
+                data = await gettingErrorPage("400", "Bad Request");
+                break;
+            case 401:
+                data = await gettingErrorPage("401", "Session Expired");
+                break;
+            default:
+                // Gérer les autres codes d'état HTTP
+                data = await gettingErrorPage("500", "Something went wrong. Please try again later.");
+        }
+    } else {
+        // Autre erreur non-HTTP (erreur JavaScript, etc.)
+        data = await gettingErrorPage("500", "Something went wrong. Please try again later.");
+    }
+
+
+    var errorHead = `
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Error Page</title>
+        <link rel="stylesheet" href="/static/CSS/error.css">
+    </head>
+    `
+
+    var errorBody = `
+    <body>
+        <div class="container">
+            <div class="status">${data.status}</div>
+            <div class="message">${data.message}</div>
+            <div class="button">GO HOME</div>
+        </div>
+    </body>
+    `
+    //Redirection
+    addinghead(errorHead)
+    addingbody(errorBody)
+    loadScript('/static/JS/error.js')
+}
+
 function loadScript(scriptUrl) {
     const scripts = document.querySelectorAll('script');
 
@@ -34,7 +110,7 @@ const regexMap = {
 };
 
 // Récupérer tous les champs du formulaire
-const button = document.querySelector('.signup');
+const btn = document.querySelector('.signup');
 const inputs = document.querySelectorAll('.form-container.sign-up input');
 
 // Pour chaque champ, ajouter un écouteur d'événements
@@ -57,21 +133,25 @@ function checkValidity() {
 }
 
 // Ajouter un écouteur d'événements au bouton
-button.addEventListener('mouseover', function () {
+btn.addEventListener('mouseover', function () {
     if (checkValidity()) {
-        button.style.backgroundColor = '#512da8';
-        button.style.cursor = 'pointer';
-        button.disabled = false
+        btn.style.backgroundColor = '#512da8';
+        btn.style.cursor = 'pointer';
+        btn.disabled = false
     } else {
-        button.style.backgroundColor = 'red';
-        button.style.cursor = 'not-allowed';
-        button.disabled = true
+        btn.style.backgroundColor = 'red';
+        btn.style.cursor = 'not-allowed';
+        btn.disabled = true
         // event.preventDefault();
     }
 });
 
+// function deleteCookie(name) {
+//     document.cookie = name + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+// }
+
 function deleteCookie(name) {
-    document.cookie = name + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+    createCookie(name, "", -1); // expiration dans le passé
 }
 
 function createCookie(name, value, exp) {
@@ -122,19 +202,20 @@ document.getElementById('loginForm').addEventListener('submit', async (event) =>
         });
 
         const data = await response.json();
+        console.log(data);
         if (data.Status === 201) {
-            setTimeout(()=> {
+            setTimeout(() => {
                 addingHtmlClass();
                 addinghead(data);
                 addingbody(data);
                 createCookie("sessionID", data.userID, 7)
-            },1500)
-        }else{
+            }, 1500)
+        } else {
             messageToPrint(data);
         }
 
     } catch (error) {
-        console.error('Login error:', error);
+        handleError(error)
     }
 });
 
@@ -183,7 +264,7 @@ document.getElementById('registerForm').addEventListener('submit', async (event)
         messageToPrint(data);
 
     } catch (error) {
-        console.error('Register error:', error);
+        handleError(error)
     }
 });
 

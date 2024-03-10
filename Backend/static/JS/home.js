@@ -1,3 +1,92 @@
+async function gettingErrorPage(status, message) {
+
+    try {
+        const response = await fetch('/api/handleError', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ Status: status, Message: message })
+        })
+
+        const data = await response.json();
+
+        return { status: data.status, message: data.message }
+
+    } catch (error) {
+        console.log("error", error);
+        handleError(error)
+    }
+}
+
+const addhead = (head) => {
+    const newHead = document.createElement('head');
+    const oldHead = document.querySelector('head');
+    newHead.innerHTML = head;
+    document.documentElement.replaceChild(newHead, oldHead);
+}
+
+//Ajout du body
+const addbody = (page) => {
+    document.body.innerHTML = '';
+    document.body.insertAdjacentHTML('afterbegin', page);
+}
+
+//
+async function handleError(error) {
+    console.error('Error:', error);
+
+    let data; // Variable pour stocker les données d'erreur
+
+    // Gérer différents types d'erreurs
+    if (error.response) {
+        switch (error.response.status) {
+            case 404:
+                data = await gettingErrorPage("404", "Page Not Found");
+                break;
+            case 405:
+                data = await gettingErrorPage("405", "Method Not Allowed");
+                break;
+            case 400:
+                data = await gettingErrorPage("400", "Bad Request");
+                break;
+            case 401:
+                data = await gettingErrorPage("401", "Session Expired");
+                break;
+            default:
+                // Gérer les autres codes d'état HTTP
+                data = await gettingErrorPage("500", "Something went wrong. Please try again later.");
+        }
+    } else {
+        // Autre erreur non-HTTP (erreur JavaScript, etc.)
+        data = await gettingErrorPage("500", "Something went wrong. Please try again later.");
+    }
+
+
+    var errorHead = `
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Error Page</title>
+        <link rel="stylesheet" href="/static/CSS/error.css">
+    </head>
+    `
+
+    var errorBody = `
+    <body>
+        <div class="container">
+            <div class="status">${data.status}</div>
+            <div class="message">${data.message}</div>
+            <div class="button">GO HOME</div>
+        </div>
+    </body>
+    `
+    //Redirection
+    addhead(errorHead)
+    addbody(errorBody)
+    loadScript('/static/JS/error.js')
+}
+
 //Check session
 async function checkSession() {
     try {
@@ -74,10 +163,57 @@ const printCharging = () => {
     }, 1000);
 }
 
-printCharging();
+function deleteCookie(name) {
+    createCookie(name, "", -1); // expiration dans le passé
+}
+
+function createCookie(name, value, exp) {
+    var expiration = "";
+    if (exp) {
+        var date = new Date();
+        date.setTime(date.getTime() + (exp * 24 * 60 * 60 * 1000));
+        expiration = "; expires=" + date.toUTCString();
+    }
+    document.cookie = name + "=" + value + expiration + "; path=/";
+}
+
+const removeHtmlClass = () => {
+    // Sélection de la balise <html>
+    const htmlElement = document.querySelector('html');
+
+    // Vérification si la classe "homepage" est présente
+    if (htmlElement.classList.contains('homepage')) {
+        // Suppression de la classe "homepage"
+        htmlElement.classList.remove('homepage');
+    }
+};
+
+let but = document.querySelector('header .logout')
+console.log(but);
+
+document.querySelector('header .logout').addEventListener('click', () => {
+    deleteCookie("sessionID")
+    var OnloadHead = `
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+        <link rel="stylesheet" href="/static/CSS/styles.css">
+        <title>Real Time Forum</title>
+    </head>
+    `
+    removeHtmlClass()
+    document.body.innerHTML = ''
+    addhead(OnloadHead)
+    loadScript('/static/JS/onload.js')
+})
+
+// logout()
 
 //On home.js load
 async function init() {
+
+    printCharging();
 
     const sessionResult = await checkSession();
 
@@ -128,8 +264,9 @@ async function init() {
     getUsers();
 }
 
-printCharging();
-init();
+
+
+
 
 //view post box
 const viewPostBox = () => {
@@ -623,3 +760,5 @@ async function getDiscutions() {
         });
     });
 }
+
+init();

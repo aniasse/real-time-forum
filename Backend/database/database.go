@@ -70,8 +70,8 @@ func createTables(db *sql.DB) {
 		);
 
 		CREATE TABLE IF NOT EXISTS sessions (
-			Id TEXT PRIMARY KEY ,
-			UserId TEXT,
+			Id INTEGER PRIMARY KEY AUTOINCREMENT,            
+			UserId TEXT NOT NULL,
 			SessionExpiry DATETIME NOT NULL,
 			FOREIGN KEY(UserId) REFERENCES users(Id) ON DELETE CASCADE ON UPDATE CASCADE
 		);
@@ -86,12 +86,6 @@ func createTables(db *sql.DB) {
 			FOREIGN KEY(ReceiverId) REFERENCES users(Id)
 		);
 
-		Create TABLE IF NOT EXISTS categories (
-			PostId TEXT NOT NULL,
-			Category TEXT NOT NULL,
-            FOREIGN KEY(PostId) REFERENCES posts(Id)
-
-		);
 	`)
 
 	if err != nil {

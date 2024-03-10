@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"golang.org/x/crypto/bcrypt"
@@ -534,4 +535,28 @@ func handleGettingDiscus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	jsonResponse2(w, http.StatusOK, messages)
+}
+
+func handleError(w http.ResponseWriter, r *http.Request) {
+	var Err struct {
+		Stat string `json:"status"`
+		Msg  string `json:"message"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&Err); err != nil {
+		jsonResponse(w, http.StatusBadRequest, "Bad Request")
+		fmt.Println("Erreur lors du decodage", http.StatusBadRequest)
+		return
+	}
+
+	// Convertir le statut en entier
+	statusCode, err := strconv.Atoi(Err.Stat)
+	if err != nil {
+		jsonResponse(w, http.StatusBadRequest, "Statut invalide")
+		fmt.Println("Statut invalide:", err)
+		return
+	}
+
+	// Répondre avec les données et le statut approprié
+	jsonResponse(w, statusCode, Err.Msg)
 }

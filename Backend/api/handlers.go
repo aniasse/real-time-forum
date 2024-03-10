@@ -13,7 +13,6 @@ import (
 	"forum/database"
 	"forum/models"
 
-	"github.com/gofrs/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -839,9 +838,7 @@ func handleActiveSession(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Gestionnaire pour la connexion des utilisateurs
 func handleLogin(w http.ResponseWriter, r *http.Request) {
-
 	var user models.Users
 	var login models.Register
 
@@ -852,68 +849,65 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Recherche l'email de l'utilisateur dans la base de données
-	err := database.DB.QueryRow("SELECT * FROM users WHERE Email = ?", login.Credential).
+	// Recherche l'email ou le nickname de l'utilisateur dans la base de données
+	err := database.DB.QueryRow("SELECT * FROM users WHERE Email = ? OR Nickname = ?", login.Credential, login.Credential).
 		Scan(&user.ID, &user.Nickname, &user.Firstname, &user.Lastname, &user.Email, &user.Gender, &user.Age, &user.Password, &user.SessionExpiry)
 
-	// Recherche le nickname de l'utilisateur dans la base de données
-	err1 := database.DB.QueryRow("SELECT * FROM users WHERE Nickname = ?", login.Credential).
-		Scan(&user.ID, &user.Nickname, &user.Firstname, &user.Lastname, &user.Email, &user.Gender, &user.Age, &user.Password, &user.SessionExpiry)
-
-	if err != nil && err1 != nil {
-		if err == sql.ErrNoRows && err1 == sql.ErrNoRows {
+	if err != nil {
+		if err == sql.ErrNoRows {
 			jsonResponse(w, http.StatusUnauthorized, "Bad Credentials ❌")
 			return
 		}
-		if err != sql.ErrNoRows && err1 != sql.ErrNoRows {
-			fmt.Println(err) // Journalisation de l'erreur pour le débogage
-			jsonResponse(w, http.StatusInternalServerError, "Internal Server Error")
-			return
-		}
+		fmt.Println(err) // Journalisation de l'erreur pour le débogage
+		jsonResponse(w, http.StatusInternalServerError, "Internal Server Error")
+		return
 	}
 
 	// Vérification du mot de passe
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(login.Password))
-	fmt.Println("Vérification du mot de passe: ", user.Password, login.Password)
 	if err != nil {
 		jsonResponse(w, http.StatusUnauthorized, "Bad Credentials ❌")
 		fmt.Println("Mot de passe incorrect")
 		return
 	}
 
-	// Session de l'utilisateur
+	// Calcul de l'heure d'expiration de la session (7 jours plus tard)
+	sessionExpiry := time.Now().Add(7 * 24 * time.Hour)
 
-	sessionID, err1 := uuid.NewV4()
-	if err1 != nil {
-		fmt.Println(err1)
-	}
-
-	// Calcul de l'heure d'expiration de la session (15 minutes plus tard)
-	sessionExpiry := time.Now().Add(15 * time.Minute)
-
-	// Mise à jour de l'identifiant de session et de l'heure d'expiration dans la base de données
-	_, err = database.DB.Exec("UPDATE users SET SessionExpiry = ? WHERE Id = ?", sessionExpiry, user.ID)
-	if err != nil {
+	// Vérification si l'utilisateur a déjà une session
+	var existingSessionID int
+	err = database.DB.QueryRow("SELECT Id FROM sessions WHERE UserId = ?", user.ID).Scan(&existingSessionID)
+	if err == nil {
+		// Si l'utilisateur a déjà une session, mettre à jour la session existante
+		_, err = database.DB.Exec("UPDATE sessions SET SessionExpiry = ? WHERE Id = ?", sessionExpiry, existingSessionID)
+		if err != nil {
+			fmt.Println(err)
+			jsonResponse(w, http.StatusInternalServerError, "Internal Server Error")
+			return
+		}
+	} else if err == sql.ErrNoRows {
+		// Si l'utilisateur n'a pas de session, insérer une nouvelle session
+		_, err = database.DB.Exec("INSERT INTO sessions (UserId, SessionExpiry) VALUES (?, ?)", user.ID, sessionExpiry)
+		if err != nil {
+			fmt.Println(err)
+			jsonResponse(w, http.StatusInternalServerError, "Internal Server Error")
+			return
+		}
+	} else {
 		fmt.Println(err)
+		jsonResponse(w, http.StatusInternalServerError, "Internal Server Error")
+		return
 	}
 
-	// Insertion de la session dans la table sessions
-	_, err = database.DB.Exec("INSERT INTO sessions (ID, UserId, SessionExpiry) VALUES (?, ?, ?)", sessionID.String(), user.ID, sessionExpiry)
-	if err != nil {
-		fmt.Println(err)
-	}
 	response := LoginSuccessResponse{
-		Status:        201,
-		Message:       "Success ✅",
-		SessionID:     sessionID.String(),
-		UserID:        user.ID,
-		SessionExpiry: sessionExpiry,
-		HomePage:      Home,
-		HomeHead:      Homehead,
+		Status:   201,
+		Message:  "Success ✅",
+		UserID:   user.ID,
+		HomePage: Home,
+		HomeHead: Homehead,
 	}
 
 	jsonResponse2(w, http.StatusOK, response)
-
 }
 
 func renderTemplateWithLayout(w http.ResponseWriter) error {
@@ -926,58 +920,3 @@ func renderTemplateWithLayout(w http.ResponseWriter) error {
 
 	return page.Execute(w, "")
 }
-
-// func renderTemplateWithLoyout(w http.ResponseWriter, r *http.Request) error {
-// 	w.WriteHeader(200)
-// 	page, err := template.ParseFiles("../Frontend/index.html")
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	return page.ExecuteTemplate(w, "", "")
-// }
-
-// func errorPage(w http.ResponseWriter, i int) error {
-// 	DataError := struct {
-// 		Code    string
-// 		Message string
-// 	}{
-// 		Code:    strconv.Itoa(i),
-// 		Message: http.StatusText(i),
-// 	}
-// 	page, err := template.ParseFiles("Frontend/index.html")
-// 	if err != nil {
-// 		return err
-// 	}
-// 	w.WriteHeader(i)
-// 	return page.Execute(w, DataError)
-// }
-
-// if cookie, err := r.Cookie("sessionId"); err != nil {
-// 	exist = false
-// 	res = Response{
-// 		Exist:        exist,
-// 		HomePage:     ``,
-// 		SignUpSignIn: SignUpIn,
-// 	}
-// 	jsonRes, err := json.Marshal(res)
-// 	if err != nil {
-// 		http.Error(w, err.Error(), http.StatusInternalServerError)
-// 		return
-// 	}
-
-// 	w.Header().Set("Content-Type", "application/json")
-// 	w.Write(jsonRes)
-// 	return
-
-// } else {
-// 	val := cookie.Value
-// 	user, err = database.GetUserByID(val)
-// 	if user != nil && err == nil {
-// 		exist = true
-// 		res.Exist = exist
-// 		res.HomePage = Home
-// 		res.SignUpSignIn = SignUpIn
-// 	}
-
-// }
