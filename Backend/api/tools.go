@@ -7,7 +7,7 @@ import (
 
 // Structure de réponse pour la connexion réussie
 type LoginSuccessResponse struct {
-	Status  int
+	Status  int    `json:"status"`
 	Message string `json:"message"`
 	// SessionID     string    `json:"sessionID"`
 	UserID string `json:"userID"`

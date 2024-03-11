@@ -47,6 +47,8 @@ func Router() {
 	http.HandleFunc("/api/getUsers", handleGetUsers)
 	http.HandleFunc("/api/getDiscussions", handleGettingDiscus)
 	http.HandleFunc("/api/handleError", handleError)
+	http.HandleFunc("/api/logout", handleLogout)
+
 	// server.HandleFunc("/api/checksession", HandleCheckSession)
 }
 

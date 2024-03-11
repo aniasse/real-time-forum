@@ -910,6 +910,28 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
 	jsonResponse2(w, http.StatusOK, response)
 }
 
+func handleLogout(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		UserID string `json:"UserId"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		jsonResponse(w, http.StatusBadRequest, "Bad Request")
+		fmt.Println("Erreur lors du décodage de la requête:", err)
+		return
+	}
+
+	_, err := database.DB.Exec("DELETE FROM sessions WHERE UserId = ?", req.UserID)
+	if err != nil {
+		jsonResponse(w, http.StatusInternalServerError, "Erreur lors de la suppression de la session")
+		fmt.Println("Erreur lors de la suppression de la session:", err)
+		return
+	}
+
+	// Répond avec un succes
+	jsonResponse(w, http.StatusOK, "Disconnected ✅")
+}
+
 func renderTemplateWithLayout(w http.ResponseWriter) error {
 	w.WriteHeader(200)
 	page, err := template.ParseFiles("index.html")
