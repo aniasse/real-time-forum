@@ -91,5 +91,3 @@ handleResponsivity();
 window.addEventListener('resize', handleResponsivity);
 
 init();
-
-inableWebsocket()

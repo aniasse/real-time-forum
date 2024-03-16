@@ -509,6 +509,7 @@ export async function init() {
     createAPost();
     viewComments();
     getUsers();
+    inableWebsocket()
 }
 
 
@@ -796,6 +797,7 @@ export const inableWebsocket = () => {
     socket.addEventListener("message", async function (event) {
         const message = JSON.parse(event.data);
         console.log("Message reçu:", message);
+        await getUsers()
         await handleReceivedMessage(message);
     });
     
