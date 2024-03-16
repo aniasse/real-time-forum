@@ -1,4 +1,3 @@
-import { socket } from './home.js';
 export const addingHtmlClass = () => {
     const htmlElement = document.querySelector('html');
 
@@ -783,31 +782,36 @@ export function formatMDate(dateString) {
     return `${day}/${month}/${year} à ${time}`;
 }
 
-// Gestion des messages reçus
+// Initialisation websocket
+export const inableWebsocket = () => {
+    const homepage = document.querySelector('.homepage')
 
-const homepage = document.querySelector('.homepage')
+    if (!homepage) {
+        console.warn("La page d'accueil n'existe pas. WebSocket est désactivé.");
+        return; 
+    }
+    
+    const socket = new WebSocket("ws://localhost:8080/ws");
 
-if (homepage) {
     socket.addEventListener("message", async function (event) {
         const message = JSON.parse(event.data);
         console.log("Message reçu:", message);
         await handleReceivedMessage(message);
     });
-}
-
-
-export async function isPrintable(message) {
-    const sessionResult = await checkSession()
-    if (!sessionResult.hasOwnProperty('nickname')) return false
-    const receiver = document.querySelector('.sms .usr p').textContent
-    return message.sender === receiver && message.receiver === sessionResult.nickname
-}
-
-export async function handleReceivedMessage(message) {
-    // Logique pour traiter le message reçu
-    if (await isPrintable(message)) {
-        // Exemple : Afficher le message dans le chat box
-        printMessage(message.content, "from-exp", message.timestamp);
+    
+     async function isPrintable(message) {
+        const sessionResult = await checkSession()
+        if (!sessionResult.hasOwnProperty('nickname')) return false
+        const receiver = document.querySelector('.sms .usr p').textContent
+        return message.sender === receiver && message.receiver === sessionResult.nickname
+    }
+    
+     async function handleReceivedMessage(message) {
+        // Logique pour traiter le message reçu
+        if (await isPrintable(message)) {
+            // Exemple : Afficher le message dans le chat box
+            printMessage(message.content, "from-exp", message.timestamp);
+        }
     }
 }
 
@@ -826,15 +830,15 @@ export function sendMessage(sender, receiver, content, time) {
 
 // Fonction pour envoyer un message du chat box via WebSocket
 export function sendChatMessage(sender, receiver) {
-    const messageInput = document.getElementById('sms');
-    const messageContent = messageInput.value.trim();
-    if (messageContent === "") {
-        return;
-    }
-    let timestamp = formatMDate(new Date().toLocaleString())
-    sendMessage(sender, receiver, messageContent, timestamp);
-    messageInput.value = ""; // Effacer le contenu après l'envoi
-    printMessage(messageContent, "from-usr", timestamp)
+   const messageInput = document.getElementById('sms');
+   const messageContent = messageInput.value.trim();
+   if (messageContent === "") {
+       return;
+   }
+   let timestamp = formatMDate(new Date().toLocaleString())
+   sendMessage(sender, receiver, messageContent, timestamp);
+   messageInput.value = ""; // Effacer le contenu après l'envoi
+   printMessage(messageContent, "from-usr", timestamp)
 }
 
 export function printMessage(messageContent, from, timestamp) {

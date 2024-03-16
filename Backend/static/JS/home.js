@@ -1,4 +1,4 @@
-import { init, handleLogout } from './tools.js';
+import { init, handleLogout, inableWebsocket } from './tools.js';
 
 //logout
 document.querySelector('header .logout').addEventListener('click', async () => {
@@ -92,4 +92,4 @@ window.addEventListener('resize', handleResponsivity);
 
 init();
 
-export const socket = new WebSocket("ws://localhost:8080/ws");
+inableWebsocket()
