@@ -29,6 +29,9 @@ func main() {
 	// Configurer le routeur de l'API
 	api.Router()
 
+	// Démarrer la fonction pour diffuser les messages
+	go api.HandleMessages()
+
 	// Serveur sur le port 8080
 	fmt.Println("Listening in http://localhost:8080")
 	http.ListenAndServe(":8080", nil)

@@ -865,6 +865,7 @@ func handleLogin(w http.ResponseWriter, r *http.Request) {
 
 	// Vérification du mot de passe
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(login.Password))
+	fmt.Println(login.Password)
 	if err != nil {
 		jsonResponse(w, http.StatusUnauthorized, "Bad Credentials ❌")
 		fmt.Println("Mot de passe incorrect")
@@ -941,4 +942,46 @@ func renderTemplateWithLayout(w http.ResponseWriter) error {
 	}
 
 	return page.Execute(w, "")
+}
+
+type CheckUserRequest struct {
+	Nickname string `json:"nickname"`
+}
+
+type CheckUserResponse struct {
+	Exists bool `json:"exists"`
+}
+
+func handleGetUser(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		jsonResponse(w, http.StatusMethodNotAllowed, "Method Not Allowed")
+		return
+	}
+
+	var req CheckUserRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		jsonResponse(w, http.StatusBadRequest, "Bad Request")
+		fmt.Println("Erreur lors du decodage: ", http.StatusBadRequest)
+		return
+	}
+
+	exists, err := userExists(req.Nickname)
+	if err != nil {
+		fmt.Println(err) // Journalisation de l'erreur pour le débogage
+		jsonResponse(w, http.StatusInternalServerError, "Internal Server Error")
+		return
+	}
+	res := CheckUserResponse{Exists: exists}
+	jsonResponse2(w, 200, res)
+}
+
+func userExists(nickname string) (bool, error) {
+
+	var count int
+	err := database.DB.QueryRow("SELECT COUNT(*) FROM users WHERE Nickname = ?", nickname).Scan(&count)
+	if err != nil {
+		return false, err
+	}
+
+	return count > 0, nil
 }

@@ -1,3 +1,4 @@
+import { socket } from './home.js';
 export const addingHtmlClass = () => {
     const htmlElement = document.querySelector('html');
 
@@ -145,9 +146,9 @@ export function getCookieValue(cookieName) {
 
 
 export function goodURL() {
-    const currentURL = window.location.href;
+    const currentURL = window.location.pathname;
 
-    return (currentURL === "http://localhost:8080/") || (currentURL === "http://localhost:8080/#")
+    return (currentURL === "/") || (currentURL === "/#")
 }
 
 export async function checkSession() {
@@ -166,7 +167,7 @@ export async function checkSession() {
         const data = await response.json();
 
         if (data.exist) {
-            console.log(data);
+
             return { success: true, head: data.homeHead, content: data.homePage, nickname: data.nickname, userId: cookieValue };
         } else {
             return { success: false, head: data.signHead, content: data.signUpIn };
@@ -206,7 +207,7 @@ export async function handleLogin() {
         });
 
         const data = await response.json();
-        console.log(data);
+
         if (data.status === 201) {
             setTimeout(() => {
                 addingHtmlClass();
@@ -699,7 +700,7 @@ export const createAPost = () => {
                 const data = await response.json();
                 if (data.status === 201) {
                     messageToShow(data)
-                    setTimeout(() => {
+                    setTimeout(async () => {
                         document.getElementById("post").value = ''
                         document.querySelector('.createpost').style.display = 'none';
                     }, 1500)
@@ -755,12 +756,13 @@ export async function getUsers() {
         messages.insertAdjacentHTML('beforeend', title);
 
         data.forEach(user => {
+            const statusColor = user.status === 'green' ? 'green' : 'red';
             const userDiv = `
                 <div class="message">
                     <div class="usr">
                         <img src="./static/images/user.png" alt="">
                         <p>${user.nickname}</p>
-                        <div class="stat"></div>
+                        <div class="stat" style="background: ${statusColor};"></div>
                     </div>
                 </div>
             `;
@@ -775,6 +777,92 @@ export async function getUsers() {
     }
 }
 
+export function formatMDate(dateString) {
+    const [date, time] = dateString.split(' ');
+    const [day, month, year] = date.split('/');
+    return `${day}/${month}/${year} à ${time}`;
+}
+
+// Gestion des messages reçus
+
+const homepage = document.querySelector('.homepage')
+
+if (homepage) {
+    socket.addEventListener("message", async function (event) {
+        const message = JSON.parse(event.data);
+        console.log("Message reçu:", message);
+        await handleReceivedMessage(message);
+    });
+}
+
+
+export async function isPrintable(message) {
+    const sessionResult = await checkSession()
+    if (!sessionResult.hasOwnProperty('nickname')) return false
+    const receiver = document.querySelector('.sms .usr p').textContent
+    return message.sender === receiver && message.receiver === sessionResult.nickname
+}
+
+export async function handleReceivedMessage(message) {
+    // Logique pour traiter le message reçu
+    if (await isPrintable(message)) {
+        // Exemple : Afficher le message dans le chat box
+        printMessage(message.content, "from-exp", message.timestamp);
+    }
+}
+
+// Fonction pour envoyer un message au serveur via WebSocket
+export function sendMessage(sender, receiver, content, time) {
+    let message = {
+        Sender: sender,
+        Receiver: receiver,
+        Content: content,
+        Timestamp: time,
+    };
+    console.log("le message", message);
+    socket.send(JSON.stringify(message));
+}
+
+
+// Fonction pour envoyer un message du chat box via WebSocket
+export function sendChatMessage(sender, receiver) {
+    const messageInput = document.getElementById('sms');
+    const messageContent = messageInput.value.trim();
+    if (messageContent === "") {
+        return;
+    }
+    let timestamp = formatMDate(new Date().toLocaleString())
+    sendMessage(sender, receiver, messageContent, timestamp);
+    messageInput.value = ""; // Effacer le contenu après l'envoi
+    printMessage(messageContent, "from-usr", timestamp)
+}
+
+export function printMessage(messageContent, from, timestamp) {
+    const discus = document.querySelector('.discus')
+    let smsDiv = document.createElement('div')
+    smsDiv.className = from
+    smsDiv.textContent = messageContent
+    let date = document.createElement('p')
+    date.className = 'sms-date'
+    date.textContent = timestamp
+    smsDiv.appendChild(date)
+    discus.appendChild(smsDiv)
+}
+
+export function createMessageDiv(message) {
+    let msgDiv = document.createElement('div');
+    msgDiv.className = message.from === 'user' ? 'from-usr' : 'from-exp';
+    msgDiv.textContent = message.text;
+
+    let messageDate = document.createElement('p');
+    messageDate.className = 'sms-date';
+    messageDate.textContent = message.date;
+
+    msgDiv.appendChild(messageDate);
+
+    return msgDiv;
+}
+
 export async function getDiscutions() {
     const discussions = document.querySelectorAll('.messages .message');
 
@@ -787,7 +875,7 @@ export async function getDiscutions() {
                 return;
             }
 
-            const userId = sessionResult.userId
+            const senderNickname = sessionResult.nickname
 
             const nickname = discus.querySelector('.usr p').textContent;
 
@@ -797,7 +885,7 @@ export async function getDiscutions() {
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ UserId: userId, ReceiverNickname: nickname })
+                    body: JSON.stringify({ SenderNickname: senderNickname, ReceiverNickname: nickname })
                 });
 
                 if (!response.ok) {
@@ -820,7 +908,6 @@ export async function getDiscutions() {
                     <img src="./static/images/goback.png" class="goback" alt="">
                     <img src="./static/images/user.png" alt="">
                     <p>${nickname}</p>
-                    <div class="stat"></div>
                 </div>
                 `
                 sms.insertAdjacentHTML('beforeend', smsInner);
@@ -828,7 +915,7 @@ export async function getDiscutions() {
                 let writeSms = `
                 <div class="to-send">
                     <textarea name="sms" id="sms" placeholder=" Type a message..."></textarea>
-                    <img src="./static/images/send.png" alt="" id="send">
+                    <img id="sendButton" src="./static/images/send.png" alt="Send">
                 </div>
                 `
                 let discus = document.createElement('div');
@@ -836,17 +923,8 @@ export async function getDiscutions() {
 
                 if (messages) {
                     messages.forEach(message => {
-                        let msgDiv = document.createElement('div')
-                        msgDiv.className = message.from === 'user' ? 'from-user' : 'from-exp'
 
-                        const messageText = document.createTextNode(message.text);
-                        const messageDate = document.createElement('p');
-
-                        messageDate.className = 'sms-date';
-                        messageDate.textContent = message.date;
-
-                        msgDiv.appendChild(messageText);
-                        msgDiv.appendChild(messageDate);
+                        let msgDiv = createMessageDiv(message)
 
                         discus.appendChild(msgDiv);
                     });
@@ -858,6 +936,37 @@ export async function getDiscutions() {
 
                 // Ajouter le fullDiv à un conteneur existant dans votre page
                 document.body.appendChild(fullDiv);
+
+                document.getElementById('sendButton').addEventListener("click", async function () {
+                    const sessionResult = await checkSession()
+                    if (!sessionResult.hasOwnProperty('userId')) {
+                        return await handleError({ response: { status: 500 } })
+                    }
+
+                    const receiverName = document.querySelector('.sms .usr p').textContent
+                    console.log('receveiver', receiverName);
+
+                    try {
+                        const response = await fetch('/api/checkUser', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ nickname: receiverName })
+                        });
+
+                        const data = await response.json();
+
+                        if (data.exists) {
+                            sendChatMessage(sessionResult.nickname, receiverName);
+                        } else {
+                            return await handleError({ response: { status: 400 } })
+                        }
+                    } catch (error) {
+                        console.log('Erreur lors de la vérification de l\'utilisateur :', error);
+                        handleError(error)
+                    }
+                });
 
                 // Ajouter l'événement pour vider fullDiv en cliquant sur l'image .goback
                 const gobackImg = fullDiv.querySelector('.goback');
@@ -879,24 +988,6 @@ export function changeUrl(newUrl) {
     window.history.pushState({}, '', newUrl);
     // Mettez à jour le contenu de la page en fonction du newUrl
 }
-
-/* Redirection from Error */
-// export function handleRedirection() {
-//     // window.history.replaceState(null, null, "/");
-//     changeUrl('/')
-//     var OnloadHead = `
-//     <head>
-// 	    <meta charset="UTF-8">
-// 	    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-// 	    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-// 	    <link rel="stylesheet" href="/static/CSS/styles.css">
-// 	    <title>Real Time Forum</title>
-//     </head>
-//     `
-//     document.body.innerHTML = ''
-//     addHead(OnloadHead)
-//     // loadScript('/static/JS/onload.js')
-// }
 
 export function handleRedirection() {
     changeUrl('/');

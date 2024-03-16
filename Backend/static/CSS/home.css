@@ -454,12 +454,6 @@
     background-color: #e7e7e7;
 }
 
-/* @media (min-width: 768px) {
- .button-create {
-   padding: 2px;
- }
-} */
-
 .homepage .content .posts .post {
     display: flex;
     flex-direction: column;
@@ -467,6 +461,7 @@
     margin: 10px;
     padding: 10px;
     border-radius: 10px;
+    max-width: 500px;
 }
 
 .homepage .content .posts .post .poster {

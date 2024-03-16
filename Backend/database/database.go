@@ -78,12 +78,10 @@ func createTables(db *sql.DB) {
 
 		CREATE TABLE IF NOT EXISTS messages (
 			Id INTEGER PRIMARY KEY AUTOINCREMENT,
-			SenderId TEXT NOT NULL,
-			ReceiverId TEXT NOT NULL,
+			SenderNickname TEXT NOT NULL,
+			ReceiverNickname TEXT NOT NULL,
 			Content TEXT NOT NULL,
-			Date DATETIME DEFAULT CURRENT_TIMESTAMP,
-			FOREIGN KEY(SenderId) REFERENCES users(Id),
-			FOREIGN KEY(ReceiverId) REFERENCES users(Id)
+			Date DATETIME NOT NULL
 		);
 
 	`)

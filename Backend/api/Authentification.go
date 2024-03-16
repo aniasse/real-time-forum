@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"html"
+	"log"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -16,6 +18,7 @@ import (
 	"time"
 
 	"github.com/gofrs/uuid"
+	"github.com/gorilla/websocket"
 )
 
 // Gestionnaire pour la vérification de la session
@@ -224,6 +227,8 @@ func handleCreatingPost(w http.ResponseWriter, r *http.Request) {
 
 	message, isValid := VerifyPost(newPost)
 
+	newPost.PostContent = html.EscapeString(newPost.PostContent)
+
 	if !isValid {
 		jsonResponse(w, http.StatusNonAuthoritativeInfo, message)
 		fmt.Println("Les données du post sont invalides: ", http.StatusNonAuthoritativeInfo)
@@ -383,6 +388,8 @@ func handleComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	comment.Content = html.EscapeString(comment.Content)
+
 	// Insérer le commentaire dans la base de données
 	_, err = database.DB.Exec(`
 		INSERT INTO comments (UserId, PostId, Content)
@@ -400,6 +407,7 @@ func handleComment(w http.ResponseWriter, r *http.Request) {
 
 type UserNickname struct {
 	Nickname string `json:"nickname"`
+	Status   string `json:"status"`
 }
 
 type User struct {
@@ -421,11 +429,18 @@ func handleGetUsers(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Récupérer tous les nicknames sauf celui de l'utilisateur spécifié
-	query := `
-		SELECT Nickname
-		FROM users
-		WHERE Id != $1
-	`
+	query := `SELECT u.Nickname, 
+				CASE WHEN s.UserId IS NULL THEN 'red' ELSE 'green' END AS status 
+			FROM users u
+			LEFT JOIN sessions s ON u.Id = s.UserId AND s.SessionExpiry > DATETIME('now')
+			WHERE u.Id != $1 
+			ORDER BY (
+			SELECT MAX(Date)
+			FROM messages m
+			WHERE m.SenderNickname = u.Nickname OR m.ReceiverNickname = u.Nickname
+			) DESC NULLS LAST,
+			LOWER(u.Nickname) ASC;
+    `
 	rows, err := database.DB.Query(query, user.UserId)
 	if err != nil {
 		fmt.Println("Erreur lors de la récupération des utilisateurs:", err)
@@ -436,14 +451,14 @@ func handleGetUsers(w http.ResponseWriter, r *http.Request) {
 
 	var userNicknames []UserNickname
 	for rows.Next() {
-		var nickname string
-		err := rows.Scan(&nickname)
+		var nickname, status string
+		err := rows.Scan(&nickname, &status)
 		if err != nil {
 			fmt.Println("Erreur lors de la lecture d'un nickname:", err)
 			jsonResponse(w, http.StatusInternalServerError, "Internal Server Error")
 			return
 		}
-		userNicknames = append(userNicknames, UserNickname{Nickname: nickname})
+		userNicknames = append(userNicknames, UserNickname{Nickname: nickname, Status: status})
 	}
 
 	jsonResponse2(w, http.StatusOK, userNicknames)
@@ -463,75 +478,48 @@ func handleGettingDiscus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var requestBody struct {
-		UserId           string `json:"UserId"`
+	var requestData struct {
+		SenderNickname   string `json:"SenderNickname"`
 		ReceiverNickname string `json:"ReceiverNickname"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
+
+	err := json.NewDecoder(r.Body).Decode(&requestData)
+	if err != nil {
 		jsonResponse(w, http.StatusBadRequest, "Bad Request")
 		fmt.Println("Erreur lors du decodage", http.StatusBadRequest)
 		return
 	}
 
-	userId := requestBody.UserId
-	receiverNickname := requestBody.ReceiverNickname
-
 	// Vérifier si le ReceiverNickname existe dans la table users
-	var receiverID string
-	err := database.DB.QueryRow("SELECT Id FROM users WHERE Nickname = $1", receiverNickname).Scan(&receiverID)
+	rows, err := database.DB.Query("SELECT SenderNickname, Content, Date FROM messages WHERE (SenderNickname = ? AND ReceiverNickname = ?) OR (SenderNickname = ? AND ReceiverNickname = ?) ORDER BY Date",
+		requestData.SenderNickname, requestData.ReceiverNickname, requestData.ReceiverNickname, requestData.SenderNickname)
+
 	if err != nil {
 		jsonResponse(w, http.StatusBadRequest, "ReceiverNickname does not exist")
 		fmt.Println("ReceiverNickname does not exist:", err)
 		return
 	}
-
-	// Vérifier si le ReceiverNickname est différent du Nickname du UserId
-	if receiverID == userId {
-		jsonResponse(w, http.StatusBadRequest, "ReceiverNickname cannot be the same as UserId")
-		fmt.Println("ReceiverNickname cannot be the same as UserId")
-		return
-	}
-
-	// Query pour récupérer les messages de la base de données
-	query := `
-		SELECT SenderId, ReceiverId, Content, Date
-		FROM messages
-		WHERE (SenderId = $1 AND ReceiverId = $2)
-			OR (ReceiverId = $1 AND SenderId = $2)
-		ORDER BY Date
-	`
-	rows, err := database.DB.Query(query, userId, receiverID)
-	if err != nil {
-		fmt.Println("Erreur lors de la récupération des messages:", err)
-		jsonResponse(w, http.StatusInternalServerError, "Internal Server Error")
-		return
-	}
 	defer rows.Close()
 
-	var messages []Message
+	messages := []Message{}
+
 	for rows.Next() {
-		var senderID, receiverID, content, date string
-		err := rows.Scan(&senderID, &receiverID, &content, &date)
+		var message Message
+		var senderNickname string
+		err := rows.Scan(&senderNickname, &message.Text, &message.Date)
 		if err != nil {
-			fmt.Println("Erreur lors de l'insertion des données dans les variables:", err)
 			jsonResponse(w, http.StatusInternalServerError, "Internal Server Error")
 			return
 		}
 
-		// Déterminer la provenance du message
-		from := "notUser"
-		if senderID == userId {
-			from = "user"
+		// Determine the From field based on the senderNickname
+		if senderNickname == requestData.SenderNickname {
+			message.From = "user"
+		} else {
+			message.From = "notUser"
 		}
 
-		// Créer un objet Message
-		msg := Message{
-			From: from,
-			Text: content,
-			Date: date,
-		}
-
-		messages = append(messages, msg)
+		messages = append(messages, message)
 	}
 
 	jsonResponse2(w, http.StatusOK, messages)
@@ -559,4 +547,98 @@ func handleError(w http.ResponseWriter, r *http.Request) {
 
 	// Répondre avec les données et le statut approprié
 	jsonResponse(w, statusCode, Err.Msg)
+}
+
+var clients = make(map[*websocket.Conn]bool) // Map pour stocker les clients WebSocket
+var broadcast = make(chan Discussions)       // Channel pour diffuser les messages à tous les clients
+
+// Configurer l'upgrader pour les connexions WebSocket
+var upgrader = websocket.Upgrader{
+	CheckOrigin: func(r *http.Request) bool {
+		return true
+	},
+}
+
+// Message struct pour définir le format des messages
+type Discussions struct {
+	Sender    string `json:"sender"`
+	Receiver  string `json:"receiver"`
+	Content   string `json:"content"`
+	Timestamp string `json:"timestamp"`
+}
+
+// Fonction pour gérer les connexions WebSocket
+func handleConnections(w http.ResponseWriter, r *http.Request) {
+	// Upgrade de la connexion HTTP à WebSocket
+	ws, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer ws.Close()
+
+	// Enregistrer le nouveau client WebSocket
+	clients[ws] = true
+	// Notification d'un nouvel utilisateur connecté
+	broadcast <- Discussions{Sender: "System", Receiver: "", Content: "New user", Timestamp: ""}
+
+	// Suppression de l'entrée client lorsqu'il se déconnecte
+	defer func() {
+		delete(clients, ws)
+		// Notification d'un utilisateur déconnecté
+		broadcast <- Discussions{Sender: "System", Receiver: "", Content: "User left", Timestamp: ""}
+	}()
+
+	// Boucle pour écouter les messages des clients
+	for {
+		msg := Discussions{}
+		// Lire le message JSON du client
+		err := ws.ReadJSON(&msg)
+		if err != nil {
+			log.Printf("Erreur de lecture du message JSON: %v", err)
+			jsonResponse(w, http.StatusBadRequest, "Bad Request")
+			delete(clients, ws)
+			break
+		}
+		// Appeler la fonction pour sauvegarder le message dans la base de données
+		err = SaveMessageToDB(msg)
+		if err != nil {
+			log.Printf("Erreur lors de la sauvegarde du message: %v", err)
+			jsonResponse(w, http.StatusBadRequest, "Bad Request")
+			continue
+		}
+		// Envoyer le message au channel de diffusion
+		broadcast <- msg
+	}
+}
+
+// Fonction pour diffuser les messages à tous les clients
+func HandleMessages() {
+	for {
+		// Récupérer le prochain message du channel de diffusion
+		fmt.Println("Channel1", broadcast)
+		msg := <-broadcast
+		fmt.Println("Message1", msg)
+		// Envoyer le message à tous les clients connectés
+		fmt.Println("cliens", clients)
+		for client := range clients {
+			err := client.WriteJSON(msg)
+			if err != nil {
+				log.Printf("Erreur lors de l'envoi du message au client: %v", err)
+				client.Close()
+				delete(clients, client)
+			}
+		}
+	}
+}
+
+// Fonction pour sauvegarder le message dans la base de données
+func SaveMessageToDB(msg Discussions) error {
+
+	// Utilisez senderID et receiverID pour insérer le message dans la base de données
+	_, err := database.DB.Exec("INSERT INTO messages (SenderNickname, ReceiverNickname, Content, Date) VALUES (?, ?, ?, ?)", msg.Sender, msg.Receiver, msg.Content, msg.Timestamp)
+	if err != nil {
+		return fmt.Errorf("error inserting message: %v", err)
+	}
+
+	return nil
 }
