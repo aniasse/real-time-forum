@@ -783,6 +783,8 @@ export function formatMDate(dateString) {
     return `${day}/${month}/${year} à ${time}`;
 }
 
+let socket
+
 // Initialisation websocket
 export const inableWebsocket = () => {
     const homepage = document.querySelector('.homepage')
@@ -792,12 +794,14 @@ export const inableWebsocket = () => {
         return; 
     }
     
-    const socket = new WebSocket("ws://localhost:8080/ws");
+    socket = new WebSocket("ws://localhost:8080/ws");
 
     socket.addEventListener("message", async function (event) {
         const message = JSON.parse(event.data);
         console.log("Message reçu:", message);
-        await getUsers()
+        if (message.receiver === "") {
+            await getUsers()
+        }
         await handleReceivedMessage(message);
     });
     
