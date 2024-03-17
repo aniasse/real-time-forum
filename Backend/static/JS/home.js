@@ -85,6 +85,13 @@ const handleResponsivity = () => {
         smss.style.height = '80vh';
     }
 };
+
+const notifGif = document.querySelector('.notifgif')
+if (notifGif) {
+    notifGif.addEventListener('click', () => {
+        notifGif.style.display = 'none'
+    })
+}
 // Appel initial pour gérer la responsivité au chargement de la page
 handleResponsivity();
 // Écouteur d'événements pour la taille de l'écran

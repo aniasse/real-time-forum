@@ -642,3 +642,55 @@ func SaveMessageToDB(msg Discussions) error {
 
 	return nil
 }
+
+type Msg struct {
+	ID               int    `json:"id"`
+	SenderNickname   string `json:"sender"`
+	ReceiverNickname string `json:"receiver"`
+	Content          string `json:"content"`
+	Date             string `json:"date"`
+}
+
+func handleNotification(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		jsonResponse(w, http.StatusMethodNotAllowed, "Method Not Allowed")
+		return
+	}
+
+	var requestData struct {
+		Nickname string `json:"nickname"`
+	}
+
+	err := json.NewDecoder(r.Body).Decode(&requestData)
+	if err != nil {
+		jsonResponse(w, http.StatusBadRequest, "Bad Request")
+		fmt.Println("Erreur lors du décodage:", err)
+		return
+	}
+
+	// Requête à la base de données pour récupérer les messages
+	rows, err := database.DB.Query("SELECT Id, SenderNickname, Content, Date FROM messages WHERE ReceiverNickname = ? ORDER BY Date DESC",
+		requestData.Nickname)
+
+	if err != nil {
+		jsonResponse(w, http.StatusInternalServerError, "Internal Server Error")
+		fmt.Println("Erreur lors de la requête à la base de données:", err)
+		return
+	}
+	defer rows.Close()
+
+	messages := []Msg{}
+
+	for rows.Next() {
+		var message Msg
+		err := rows.Scan(&message.ID, &message.SenderNickname, &message.Content, &message.Date)
+		if err != nil {
+			jsonResponse(w, http.StatusInternalServerError, "Internal Server Error")
+			fmt.Println("Erreur lors du scan des lignes:", err)
+			return
+		}
+		messages = append(messages, message)
+	}
+
+	jsonResponse2(w, http.StatusOK, messages)
+}

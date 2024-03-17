@@ -97,6 +97,13 @@
     margin-top: 10px;
 }
 
+.homepage header .notifgif {
+    position: absolute;
+    left: 50%;
+    right: 50%;
+    cursor: pointer;
+}
+
 .homepage nav {
     position: absolute;
     top: 20px;

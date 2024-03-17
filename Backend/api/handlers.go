@@ -68,6 +68,7 @@ var Home = `<body>
                 </span>
             </div>
         </nav>
+        <img src="./static/images/notification.gif" alt="Notification" class="notifgif" style="display:none;">
         <div class="navigation">
             <a class="button" href="#">
                 <img src="./static/images/user.png" alt="logout">

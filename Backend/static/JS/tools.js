@@ -510,6 +510,62 @@ export async function init() {
     viewComments();
     getUsers();
     inableWebsocket()
+    getNotification();
+}
+
+export const getNotification = async () => {
+    const sessionResult = await checkSession()
+    if (!sessionResult.success) {
+        await handleError({ response: { status: 404 } });
+        return;
+    }
+    try {
+        const response = await fetch(`/api/getNotifs`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ Nickname: sessionResult.nickname })
+        })
+
+        const notifs = await response.json();
+        console.log('notifs:', notifs);
+        const title = `
+            <div class="title">
+                <span>
+                    <h5>Notifications</h5>
+                </span>
+            </div>
+        `
+        const notifsDiv = document.querySelector('.notifs')
+        notifsDiv.innerHTML = ''
+        notifsDiv.insertAdjacentHTML('beforeend', title)
+        if (notifs.length === 0) {
+            const noNotif = '<p>No notification yet.</p>';
+            notifsDiv.insertAdjacentHTML('beforeend', noNotif);
+        } else {
+            notifs.forEach(notif => {
+                const dateWithoutZ = notif.date.slice(0, -4);
+                const formattedDate = dateWithoutZ.replace(/T/, " ");
+                let notifDiv = `
+                <div class="notif">
+                    <div class="profil-pic">
+                        <img src="./static/images/user.png" alt="">
+                    </div>
+                    <div class="notif-body">
+                        <b>${notif.sender}</b> Send you a message
+                        <small class="text-muted">${formattedDate}</small>
+                    </div>
+                </div>
+                `
+                notifsDiv.insertAdjacentHTML('beforeend', notifDiv);
+            })
+        }
+
+    } catch (error) {
+        console.log('error in getNotification func', error);
+        handleError(error)
+    }
 }
 
 
@@ -778,9 +834,20 @@ export async function getUsers() {
 }
 
 export function formatMDate(dateString) {
-    const [date, time] = dateString.split(' ');
-    const [day, month, year] = date.split('/');
-    return `${day}/${month}/${year} à ${time}`;
+    // On utilise l'objet `Date` pour simplifier la manipulation de la date
+    const dateObject = new Date(dateString);
+
+    // On utilise les méthodes `getFullYear()`, `getMonth()` et `getDate()` pour obtenir les parties de la date
+    const year = dateObject.getFullYear();
+    const month = dateObject.getMonth() + 1; // Janvier est à l'index 0, donc on ajoute 1
+    const day = dateObject.getDate();
+
+    // On utilise les méthodes `getHours()` et `getMinutes()` pour obtenir les parties du temps
+    const hours = dateObject.getHours();
+    const minutes = dateObject.getMinutes();
+
+    // On formate la date et le temps en utilisant des littéraux de gabarit
+    return `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')} ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
 }
 
 let socket
@@ -791,9 +858,9 @@ export const inableWebsocket = () => {
 
     if (!homepage) {
         console.warn("La page d'accueil n'existe pas. WebSocket est désactivé.");
-        return; 
+        return;
     }
-    
+
     socket = new WebSocket("ws://localhost:8080/ws");
 
     socket.addEventListener("message", async function (event) {
@@ -801,22 +868,58 @@ export const inableWebsocket = () => {
         console.log("Message reçu:", message);
         if (message.receiver === "") {
             await getUsers()
+        } else {
+            await getUsers()
+            await handleReceivedMessage(message);
         }
-        await handleReceivedMessage(message);
     });
-    
-     async function isPrintable(message) {
-        const sessionResult = await checkSession()
+
+    function isPrintable(message, sessionResult) {
         if (!sessionResult.hasOwnProperty('nickname')) return false
-        const receiver = document.querySelector('.sms .usr p').textContent
+        return message.receiver === sessionResult.nickname
+    }
+
+    function discussionDivIsOpen(message, sessionResult) {
+        const receiverPara = document.querySelector('.sms .usr p')
+        console.log("receiverpara:", receiverPara);
+        if (!receiverPara) return false
+        const receiver = receiverPara.textContent
         return message.sender === receiver && message.receiver === sessionResult.nickname
     }
-    
-     async function handleReceivedMessage(message) {
+
+    async function handleReceivedMessage(message) {
+        const sessionResult = await checkSession()
         // Logique pour traiter le message reçu
-        if (await isPrintable(message)) {
+        if (isPrintable(message, sessionResult)) {
+            const notifGif = document.querySelector('.notifgif')
+            notifGif.style.display = 'flex';
+            if (discussionDivIsOpen(message, sessionResult)) {
+                printMessage(message.content, "from-exp", message.timestamp);
+            }
+            const notifsDiv = document.querySelector('.notifs');
+
+            // Sélection de l'élément <p> à supprimer (juste après la div "title")
+            const pToRemove = notifsDiv.querySelector('.title + p');
+
+            // Vérifier si l'élément existe avant de le supprimer
+            if (pToRemove) {
+                notifsDiv.removeChild(pToRemove);
+            }
+
+            const notifs = document.querySelector('.notifs .title')
+            let notifDiv = `
+                <div class="notif">
+                    <div class="profil-pic">
+                        <img src="./static/images/user.png" alt="">
+                    </div>
+                    <div class="notif-body">
+                        <b>${message.sender}</b> Send you a message
+                        <small class="text-muted">${message.timestamp}</small>
+                    </div>
+                </div>
+                `
+            notifs.insertAdjacentHTML('afterend', notifDiv);
             // Exemple : Afficher le message dans le chat box
-            printMessage(message.content, "from-exp", message.timestamp);
         }
     }
 }
@@ -836,15 +939,15 @@ export function sendMessage(sender, receiver, content, time) {
 
 // Fonction pour envoyer un message du chat box via WebSocket
 export function sendChatMessage(sender, receiver) {
-   const messageInput = document.getElementById('sms');
-   const messageContent = messageInput.value.trim();
-   if (messageContent === "") {
-       return;
-   }
-   let timestamp = formatMDate(new Date().toLocaleString())
-   sendMessage(sender, receiver, messageContent, timestamp);
-   messageInput.value = ""; // Effacer le contenu après l'envoi
-   printMessage(messageContent, "from-usr", timestamp)
+    const messageInput = document.getElementById('sms');
+    const messageContent = messageInput.value.trim();
+    if (messageContent === "") {
+        return;
+    }
+    let timestamp = formatMDate(new Date().toLocaleString())
+    sendMessage(sender, receiver, messageContent, timestamp);
+    messageInput.value = ""; // Effacer le contenu après l'envoi
+    printMessage(messageContent, "from-usr", timestamp)
 }
 
 export function printMessage(messageContent, from, timestamp) {
@@ -866,7 +969,9 @@ export function createMessageDiv(message) {
 
     let messageDate = document.createElement('p');
     messageDate.className = 'sms-date';
-    messageDate.textContent = message.date;
+    const dateWithoutZ = message.date.slice(0, -4);
+    const formattedDate = dateWithoutZ.replace(/T/, " ");
+    messageDate.textContent = formattedDate;
 
     msgDiv.appendChild(messageDate);
 
