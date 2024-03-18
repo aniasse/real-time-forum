@@ -808,6 +808,13 @@ func CheckActiveSession(r *http.Request) (*models.Users, bool) {
 	return user, true
 }
 
+// func isAuth(cookie string) bool {
+
+//     user, err := database.GetUserByID(cookie)
+
+//     if (user == nil || )
+// }
+
 func handleActiveSession(w http.ResponseWriter, r *http.Request) {
 	var res Response
 	var user *models.Users
