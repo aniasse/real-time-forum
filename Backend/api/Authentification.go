@@ -601,7 +601,11 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 		// Appeler la fonction pour sauvegarder le message dans la base de données
-		msg.Timestamp = time.Now().GoString()
+		now := time.Now()
+
+		// Formater le temps dans le format spécifié "2006-01-02 15:04:05"
+		formattedTime := now.Format("2006-01-02 15:04:05")
+		msg.Timestamp = formattedTime
 		err = SaveMessageToDB(msg)
 		if err != nil {
 			log.Printf("Erreur lors de la sauvegarde du message: %v", err)
