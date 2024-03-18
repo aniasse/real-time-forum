@@ -481,6 +481,7 @@ func handleGettingDiscus(w http.ResponseWriter, r *http.Request) {
 	var requestData struct {
 		SenderNickname   string `json:"SenderNickname"`
 		ReceiverNickname string `json:"ReceiverNickname"`
+		Offset           int    `json:"offset"`
 	}
 
 	err := json.NewDecoder(r.Body).Decode(&requestData)
@@ -491,8 +492,8 @@ func handleGettingDiscus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Vérifier si le ReceiverNickname existe dans la table users
-	rows, err := database.DB.Query("SELECT SenderNickname, Content, Date FROM messages WHERE (SenderNickname = ? AND ReceiverNickname = ?) OR (SenderNickname = ? AND ReceiverNickname = ?) ORDER BY Date",
-		requestData.SenderNickname, requestData.ReceiverNickname, requestData.ReceiverNickname, requestData.SenderNickname)
+	rows, err := database.DB.Query("SELECT SenderNickname, Content, Date FROM messages WHERE (SenderNickname = ? AND ReceiverNickname = ?) OR (SenderNickname = ? AND ReceiverNickname = ?) ORDER BY Date DESC LIMIT 10 OFFSET ?",
+		requestData.SenderNickname, requestData.ReceiverNickname, requestData.ReceiverNickname, requestData.SenderNickname, requestData.Offset)
 
 	if err != nil {
 		jsonResponse(w, http.StatusBadRequest, "ReceiverNickname does not exist")

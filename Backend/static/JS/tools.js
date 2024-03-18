@@ -760,6 +760,8 @@ export const createAPost = () => {
                         document.getElementById("post").value = ''
                         document.querySelector('.createpost').style.display = 'none';
                     }, 1500)
+                    window.history.replaceState(null, null, "/");
+                    location.reload();
                     return
                 }
                 messageToShow(data)
@@ -842,12 +844,13 @@ export function formatMDate(dateString) {
     const month = dateObject.getMonth() + 1; // Janvier est à l'index 0, donc on ajoute 1
     const day = dateObject.getDate();
 
-    // On utilise les méthodes `getHours()` et `getMinutes()` pour obtenir les parties du temps
+    // On utilise les méthodes `getHours()`, `getMinutes()` et `getSeconds()` pour obtenir les parties du temps
     const hours = dateObject.getHours();
     const minutes = dateObject.getMinutes();
+    const seconds = dateObject.getSeconds();
 
     // On formate la date et le temps en utilisant des littéraux de gabarit
-    return `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')} ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+    return `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')} ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 }
 
 let socket
@@ -969,7 +972,7 @@ export function createMessageDiv(message) {
 
     let messageDate = document.createElement('p');
     messageDate.className = 'sms-date';
-    const dateWithoutZ = message.date.slice(0, -4);
+    const dateWithoutZ = message.date.slice(0, -1);
     const formattedDate = dateWithoutZ.replace(/T/, " ");
     messageDate.textContent = formattedDate;
 
@@ -1037,7 +1040,7 @@ export async function getDiscutions() {
                 discus.className = 'discus';
 
                 if (messages) {
-                    messages.forEach(message => {
+                    messages.reverse().forEach(message => {
 
                         let msgDiv = createMessageDiv(message)
 
@@ -1051,6 +1054,9 @@ export async function getDiscutions() {
 
                 // Ajouter le fullDiv à un conteneur existant dans votre page
                 document.body.appendChild(fullDiv);
+
+                //Gestion scroll
+                await handleScroll(senderNickname, nickname)
 
                 document.getElementById('sendButton').addEventListener("click", async function () {
                     const sessionResult = await checkSession()
@@ -1097,6 +1103,67 @@ export async function getDiscutions() {
             }
         });
     });
+}
+
+export async function handleScroll(senderNickname, nickname) {
+    const discus = document.querySelector('.discus');
+    let isLoading = false;
+
+    discus.addEventListener('scroll', async () => {
+        if (discus.scrollTop === 0 && !isLoading) {
+            printLoad()
+            // User scrolled to top of discus, load more messages
+            isLoading = true;
+
+            const offset = discus.children.length; // Number of current messages
+
+            // Call function to fetch more messages
+            await fetchMoreMessages(senderNickname, nickname, offset, discus);
+
+            isLoading = false;
+        }
+    });
+}
+
+export async function fetchMoreMessages(senderNickname, nickname, offset, discus) {
+
+    try {
+        const response = await fetch(`/api/getDiscussions`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ SenderNickname: senderNickname, ReceiverNickname: nickname, Offset: offset })
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to fetch messages');
+        }
+
+        const newMessages = await response.json();
+
+        // Append newMessages to the existing discussion div
+        newMessages.forEach(message => {
+            const msgDiv = createMessageDiv(message);
+            discus.prepend(msgDiv); // Append messages at the beginning of discus
+        });
+
+    } catch (error) {
+        console.error('Error fetching messages:', error);
+        handleError(error)
+    }
+}
+
+export const printLoad = () => {
+    let div = document.createElement('div');
+    let loader = document.createElement('div')
+    div.classList = 'fullScreen';
+    loader.classList = 'load'
+    div.appendChild(loader)
+    document.body.appendChild(div);
+    setTimeout(() => {
+        if (document.body.contains(div)) document.body.removeChild(div);
+    }, 1000);
 }
 
 export function changeUrl(newUrl) {
