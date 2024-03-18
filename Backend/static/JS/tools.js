@@ -864,7 +864,7 @@ export const inableWebsocket = () => {
         return;
     }
 
-    socket = new WebSocket("ws://localhost:8080/ws");
+    socket = new WebSocket(`ws://${location.hostname}:8080/ws`);
 
     socket.addEventListener("message", async function (event) {
         const message = JSON.parse(event.data);
