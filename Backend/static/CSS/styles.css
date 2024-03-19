@@ -87,7 +87,8 @@ body{
     margin: 15px 0 10px;
 }
 .container button{
-    background-color: rgb(193, 191, 191);
+    /* background-color: rgb(193, 191, 191); */
+    background: linear-gradient(to right, #afbaf9, #c1b0e9);
     color: black;
     font-size: 12px;
     padding: 10px 45px;
@@ -140,10 +141,11 @@ body{
     font-weight: 100;
 }
 .gender select{
-    color: #c9d6ff;
+    color: black;
     border: 1px;
     border-radius: 3px;
-    background-color: #512da8;
+    /* background-color: #512da8; */
+    background: linear-gradient(to right, #afbaf9, #c1b0e9);
     cursor: pointer;
 }
 .form-container{
@@ -220,7 +222,7 @@ body{
 .toggle{
     background-color: rgb(193, 191, 191);
     height: 100%;
-    background: linear-gradient(to right, #5c6bc0, #512da8);
+    background: linear-gradient(to right, #afbaf9, #c1b0e9);
     color: black;
     position: relative;
     left: -100%;
