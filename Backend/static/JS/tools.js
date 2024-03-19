@@ -418,9 +418,15 @@ export async function handleLogout() {
     }
 }
 
-export async function fetchAndDisplayPosts() {
+export async function fetchAndDisplayPosts(userId) {
     try {
-        const response = await fetch("/api/posts");
+        const response = await fetch(`/api/posts`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ UserId: userId })
+        })
         const posts = await response.json();
 
         const postsContainer = document.querySelector('.posts');
@@ -499,7 +505,7 @@ export async function init() {
         // document.body.innerHTML = sessionResult.content; // Insérer la page d'accueil
         document.querySelector('.posts').innerHTML = '';
         document.querySelector('.posts').insertAdjacentHTML('beforeend', create);
-        await fetchAndDisplayPosts(); // Récupérer et afficher les posts après l'affichage de la structure
+        await fetchAndDisplayPosts(sessionResult.userId); // Récupérer et afficher les posts après l'affichage de la structure
     } else {
         document.body.innerHTML = sessionResult.content; // Insérer la page de connexion
         loadScript('/static/JS/sign.js');
@@ -525,7 +531,7 @@ export const getNotification = async () => {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ Nickname: sessionResult.nickname })
+            body: JSON.stringify({ Nickname: sessionResult.nickname, UserId : sessionResult.userId })
         })
 
         const notifs = await response.json();
@@ -613,7 +619,7 @@ export const viewComments = async () => {
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ PostId: postId }),
+                    body: JSON.stringify({ PostId: postId, UserId: sessionResult.userId }),
                 });
 
                 if (!response.ok) {
@@ -856,7 +862,7 @@ export function formatMDate(dateString) {
 let socket
 
 // Initialisation websocket
-export const inableWebsocket = () => {
+export const inableWebsocket = async () => {
     const homepage = document.querySelector('.homepage')
 
     if (!homepage) {
@@ -864,7 +870,12 @@ export const inableWebsocket = () => {
         return;
     }
 
-    socket = new WebSocket(`ws://${location.hostname}:8080/ws`);
+    const sessionResult = await checkSession()
+    if (!sessionResult.userId) {
+        return await handleError({ response: { status: 500 } });
+    }
+
+    socket = new WebSocket(`ws://${location.hostname}:8080/ws?userId=${sessionResult.userId}`);
 
     socket.addEventListener("message", async function (event) {
         const message = JSON.parse(event.data);
@@ -894,37 +905,45 @@ export const inableWebsocket = () => {
         const sessionResult = await checkSession()
         // Logique pour traiter le message reçu
         if (isPrintable(message, sessionResult)) {
-            const notifGif = document.querySelector('.notifgif')
-            notifGif.style.display = 'flex';
             if (discussionDivIsOpen(message, sessionResult)) {
-                printMessage(message.content, "from-exp", message.timestamp);
+                if (message.content === "") {
+                    const typing = document.querySelector('.typing')
+                    typing.style.display = (typing.style.display === 'none' || typing.style.display === '') ? 'flex' : 'none';
+                }else{
+                    printMessage(message.content, "from-exp", message.timestamp);
+                    const notifGif = document.querySelector('.notifgif')
+                    notifGif.style.display = 'flex';
+                    insertNotif(message)
+                }
             }
-            const notifsDiv = document.querySelector('.notifs');
-
-            // Sélection de l'élément <p> à supprimer (juste après la div "title")
-            const pToRemove = notifsDiv.querySelector('.title + p');
-
-            // Vérifier si l'élément existe avant de le supprimer
-            if (pToRemove) {
-                notifsDiv.removeChild(pToRemove);
-            }
-
-            const notifs = document.querySelector('.notifs .title')
-            let notifDiv = `
-                <div class="notif">
-                    <div class="profil-pic">
-                        <img src="./static/images/user.png" alt="">
-                    </div>
-                    <div class="notif-body">
-                        <b>${message.sender}</b> Send you a message
-                        <small class="text-muted">${message.timestamp}</small>
-                    </div>
-                </div>
-                `
-            notifs.insertAdjacentHTML('afterend', notifDiv);
-            // Exemple : Afficher le message dans le chat box
         }
     }
+}
+
+export function insertNotif(message) {
+    const notifsDiv = document.querySelector('.notifs');
+
+    // Sélection de l'élément <p> à supprimer (juste après la div "title")
+    const pToRemove = notifsDiv.querySelector('.title + p');
+
+    // Vérifier si l'élément existe avant de le supprimer
+    if (pToRemove) {
+        notifsDiv.removeChild(pToRemove);
+    }
+
+    const notifs = document.querySelector('.notifs .title')
+    let notifDiv = `
+        <div class="notif">
+            <div class="profil-pic">
+                <img src="./static/images/user.png" alt="">
+            </div>
+            <div class="notif-body">
+                <b>${message.sender}</b> Send you a message
+                <small class="text-muted">${message.timestamp}</small>
+            </div>
+        </div>
+        `
+    notifs.insertAdjacentHTML('afterend', notifDiv);
 }
 
 // Fonction pour envoyer un message au serveur via WebSocket
@@ -936,6 +955,37 @@ export function sendMessage(sender, receiver, content, time) {
         Timestamp: time,
     };
     console.log("le message", message);
+    socket.send(JSON.stringify(message));
+}
+
+export async function verifyUsers() {
+    const sessionResult = await checkSession()
+    if (!sessionResult.userId) {
+        return await handleError({ response: { status: 500 } });
+    }
+
+    const receiverPara = document.querySelector('.sms .usr p')
+    console.log("receiverpara:", receiverPara);
+    if (!receiverPara) {
+        return await handleError({ response: { status: 500 } });
+    }
+
+    const receiver = receiverPara.textContent
+
+    return [sessionResult.nickname, receiver]
+}
+
+export async function onTextareaEvents() {
+    const [senderNickname, receiverNickname] = await verifyUsers()
+    // Code pour envoyer une notification au serveur WebSocket
+    const message = {
+        sender: senderNickname, // Le sender est l'utilisateur actuel
+        receiver: receiverNickname, // L'ID du destinataire
+        content: "", // Vous pouvez envoyer un message vide ou un indicateur que l'utilisateur commence à rédiger
+        timestamp: "" // Le timestamp peut être ajouté côté serveur
+    };
+
+    // Envoyer le message WebSocket au serveur
     socket.send(JSON.stringify(message));
 }
 
@@ -1003,7 +1053,7 @@ export async function getDiscutions() {
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ SenderNickname: senderNickname, ReceiverNickname: nickname })
+                    body: JSON.stringify({ SenderNickname: senderNickname, ReceiverNickname: nickname, UserId: sessionResult.userId })
                 });
 
                 if (!response.ok) {
@@ -1026,6 +1076,7 @@ export async function getDiscutions() {
                     <img src="./static/images/goback.png" class="goback" alt="">
                     <img src="./static/images/user.png" alt="">
                     <p>${nickname}</p>
+                    <img src="./static/images/typing.gif" alt="" class="typing" style="display: none;">
                 </div>
                 `
                 sms.insertAdjacentHTML('beforeend', smsInner);
@@ -1058,6 +1109,10 @@ export async function getDiscutions() {
                 //Gestion scroll
                 await handleScroll(senderNickname, nickname)
 
+                detectTextareaMove();
+                // activateTextareaDetection();
+                // desactivateTextareaDetection();
+
                 document.getElementById('sendButton').addEventListener("click", async function () {
                     const sessionResult = await checkSession()
                     if (!sessionResult.hasOwnProperty('userId')) {
@@ -1073,7 +1128,7 @@ export async function getDiscutions() {
                             headers: {
                                 'Content-Type': 'application/json'
                             },
-                            body: JSON.stringify({ nickname: receiverName })
+                            body: JSON.stringify({ nickname: receiverName, UserId: sessionResult.userId })
                         });
 
                         const data = await response.json();
@@ -1105,6 +1160,18 @@ export async function getDiscutions() {
     });
 }
 
+// Fonction pour activer la détection lorsque le textarea est activé
+export function detectTextareaMove() {
+    const textarea = document.getElementById('sms');
+    textarea.addEventListener('focus', onTextareaEvents);
+    textarea.addEventListener('blur', onTextareaEvents);
+}
+
+// export function desactivateTextareaDetection() {
+//     const textarea = document.getElementById('sms');
+
+// }
+
 export async function handleScroll(senderNickname, nickname) {
     const discus = document.querySelector('.discus');
     let isLoading = false;
@@ -1128,12 +1195,20 @@ export async function handleScroll(senderNickname, nickname) {
 export async function fetchMoreMessages(senderNickname, nickname, offset, discus) {
 
     try {
+
+        const sessionResult = await checkSession();
+
+        if (!sessionResult.success) {
+            await handleError({ response: { status: 404 } });
+            return;
+        }
+
         const response = await fetch(`/api/getDiscussions`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ SenderNickname: senderNickname, ReceiverNickname: nickname, Offset: offset })
+            body: JSON.stringify({ SenderNickname: senderNickname, ReceiverNickname: nickname, UserId: sessionResult.userId, Offset: offset })
         });
 
         if (!response.ok) {

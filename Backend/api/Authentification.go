@@ -225,6 +225,12 @@ func handleCreatingPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !isAuth(newPost.UserId) {
+		jsonResponse(w, http.StatusForbidden, "Not Authorized")
+		fmt.Println("Non autorisé: ", http.StatusBadRequest)
+		return
+	}
+
 	message, isValid := VerifyPost(newPost)
 
 	newPost.PostContent = html.EscapeString(newPost.PostContent)
@@ -252,8 +258,25 @@ func handleCreatingPost(w http.ResponseWriter, r *http.Request) {
 
 }
 
+type Id struct {
+	UserId string
+}
+
 func handleGetPosts(w http.ResponseWriter, r *http.Request) {
 	// Requête avec une jointure pour inclure le Nickname du User
+	var identifiant Id
+
+	if err := json.NewDecoder(r.Body).Decode(&identifiant); err != nil {
+		jsonResponse(w, http.StatusBadRequest, "Bad Request")
+		fmt.Println("Les données d'inscription sont invalides: ", http.StatusBadRequest)
+		return
+	}
+
+	if !isAuth(identifiant.UserId) {
+		jsonResponse(w, http.StatusForbidden, "Not Authorized")
+		fmt.Println("Non autorisé: ", http.StatusBadRequest)
+		return
+	}
 
 	rows, err := database.DB.Query(`
 			SELECT 
@@ -290,6 +313,7 @@ func handleGetPosts(w http.ResponseWriter, r *http.Request) {
 
 type PostID struct {
 	PostId string `json:"PostId"`
+	UserId string `json:"userId"`
 }
 
 // Structure de commentaire
@@ -310,6 +334,11 @@ func handleGetComments(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(&postId); err != nil {
 		jsonResponse(w, http.StatusBadRequest, "Bad Request")
 		fmt.Println("Les données d'inscription sont invalides: ", http.StatusBadRequest)
+		return
+	}
+	if !isAuth(postId.UserId) {
+		jsonResponse(w, http.StatusForbidden, "Not Authorized")
+		fmt.Println("Non autorisé: ", http.StatusBadRequest)
 		return
 	}
 
@@ -347,7 +376,7 @@ func handleGetComments(w http.ResponseWriter, r *http.Request) {
 
 // Structure de commentaire pour stockage en base de données
 type Commentary struct {
-	UserID  string `json:"UserId"`
+	UserId  string `json:"userId"`
 	PostID  string `json:"PostId"`
 	Content string `json:"Content"`
 }
@@ -369,6 +398,12 @@ func handleComment(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		jsonResponse(w, http.StatusBadRequest, "Bad Request")
 		fmt.Println("Erreur lors de la lecture des données du commentaire:", err)
+		return
+	}
+
+	if !isAuth(comment.UserId) {
+		jsonResponse(w, http.StatusForbidden, "Not Authorized")
+		fmt.Println("Non autorisé: ", http.StatusBadRequest)
 		return
 	}
 
@@ -394,7 +429,7 @@ func handleComment(w http.ResponseWriter, r *http.Request) {
 	_, err = database.DB.Exec(`
 		INSERT INTO comments (UserId, PostId, Content)
 		VALUES ($1, $2, $3)
-	`, comment.UserID, comment.PostID, comment.Content)
+	`, comment.UserId, comment.PostID, comment.Content)
 	if err != nil {
 		jsonResponse(w, http.StatusInternalServerError, "Internal Server Error")
 		fmt.Println("Erreur lors de l'insertion du commentaire en base de données:", err)
@@ -425,6 +460,12 @@ func handleGetUsers(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
 		jsonResponse(w, http.StatusBadRequest, "Bad Request")
 		fmt.Println("Erreur lors de la réception des données utilisateur:", err)
+		return
+	}
+
+	if !isAuth(user.UserId) {
+		jsonResponse(w, http.StatusForbidden, "Not Authorized")
+		fmt.Println("Non autorisé: ", http.StatusBadRequest)
 		return
 	}
 
@@ -481,6 +522,7 @@ func handleGettingDiscus(w http.ResponseWriter, r *http.Request) {
 	var requestData struct {
 		SenderNickname   string `json:"SenderNickname"`
 		ReceiverNickname string `json:"ReceiverNickname"`
+		UserId           string `json:"userId"`
 		Offset           int    `json:"offset"`
 	}
 
@@ -488,6 +530,12 @@ func handleGettingDiscus(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		jsonResponse(w, http.StatusBadRequest, "Bad Request")
 		fmt.Println("Erreur lors du decodage", http.StatusBadRequest)
+		return
+	}
+
+	if !isAuth(requestData.UserId) {
+		jsonResponse(w, http.StatusForbidden, "Not Authorized")
+		fmt.Println("Non autorisé: ", http.StatusBadRequest)
 		return
 	}
 
@@ -577,6 +625,14 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	}
 	defer ws.Close()
 
+	userID := r.URL.Query().Get("userId")
+
+	if !isAuth(userID) {
+		jsonResponse(w, http.StatusUnauthorized, "Unauthorized")
+		fmt.Println("Non autorisé: ", http.StatusBadRequest)
+		return
+	}
+
 	// Enregistrer le nouveau client WebSocket
 	clients[ws] = true
 	// Notification d'un nouvel utilisateur connecté
@@ -600,18 +656,21 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 			delete(clients, ws)
 			break
 		}
-		// Appeler la fonction pour sauvegarder le message dans la base de données
-		now := time.Now()
 
-		// Formater le temps dans le format spécifié "2006-01-02 15:04:05"
-		formattedTime := now.Format("2006-01-02 15:04:05")
-		msg.Timestamp = formattedTime
-		err = SaveMessageToDB(msg)
-		if err != nil {
-			log.Printf("Erreur lors de la sauvegarde du message: %v", err)
-			jsonResponse(w, http.StatusBadRequest, "Bad Request")
-			continue
+		if msg.Content != "" {
+			now := time.Now()
+
+			// Formater le temps dans le format spécifié "2006-01-02 15:04:05"
+			formattedTime := now.Format("2006-01-02 15:04:05")
+			msg.Timestamp = formattedTime
+			err = SaveMessageToDB(msg)
+			if err != nil {
+				log.Printf("Erreur lors de la sauvegarde du message: %v", err)
+				jsonResponse(w, http.StatusBadRequest, "Bad Request")
+				continue
+			}
 		}
+
 		// Envoyer le message au channel de diffusion
 		broadcast <- msg
 	}
@@ -665,12 +724,19 @@ func handleNotification(w http.ResponseWriter, r *http.Request) {
 
 	var requestData struct {
 		Nickname string `json:"nickname"`
+		UserId   string `json:"userId"`
 	}
 
 	err := json.NewDecoder(r.Body).Decode(&requestData)
 	if err != nil {
 		jsonResponse(w, http.StatusBadRequest, "Bad Request")
 		fmt.Println("Erreur lors du décodage:", err)
+		return
+	}
+
+	if !isAuth(requestData.UserId) {
+		jsonResponse(w, http.StatusForbidden, "Not Authorized")
+		fmt.Println("Non autorisé: ", http.StatusBadRequest)
 		return
 	}
 

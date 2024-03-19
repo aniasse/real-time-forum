@@ -808,12 +808,15 @@ func CheckActiveSession(r *http.Request) (*models.Users, bool) {
 	return user, true
 }
 
-// func isAuth(cookie string) bool {
+func isAuth(cookie string) bool {
 
-//     user, err := database.GetUserByID(cookie)
+	user, err := database.GetUserByID(cookie)
 
-//     if (user == nil || )
-// }
+	if user == nil || err != nil {
+		return false
+	}
+	return true
+}
 
 func handleActiveSession(w http.ResponseWriter, r *http.Request) {
 	var res Response
@@ -954,6 +957,7 @@ func renderTemplateWithLayout(w http.ResponseWriter) error {
 
 type CheckUserRequest struct {
 	Nickname string `json:"nickname"`
+	UserId   string `json:"userId"`
 }
 
 type CheckUserResponse struct {
@@ -970,6 +974,12 @@ func handleGetUser(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		jsonResponse(w, http.StatusBadRequest, "Bad Request")
 		fmt.Println("Erreur lors du decodage: ", http.StatusBadRequest)
+		return
+	}
+
+	if !isAuth(req.UserId) {
+		jsonResponse(w, http.StatusForbidden, "Not Authorized")
+		fmt.Println("Non autorisé: ", http.StatusBadRequest)
 		return
 	}
 

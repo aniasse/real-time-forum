@@ -629,6 +629,9 @@
     align-items: center;
     text-align: center;
     gap: 10px;
+    background-color: rgb(255, 255, 255);
+    padding: 5px;
+    border-radius: 10px;
 }
 
 .homepage .sms .usr img {
@@ -660,6 +663,7 @@
     display: flex;
     flex-direction: column;
     margin: 10px;
+    margin-top: 2px;
     gap: 10px;
 }
 
@@ -780,3 +784,7 @@
     60%{background-position:0%  50%, 50% 100%,100%   0%}
     80%{background-position:0%  50%, 50%  50%,100% 100%}
 }
+
+/* .homepage .typing {
+    display: none;
+} */
