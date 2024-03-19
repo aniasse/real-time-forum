@@ -531,7 +531,7 @@ export const getNotification = async () => {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ Nickname: sessionResult.nickname, UserId : sessionResult.userId })
+            body: JSON.stringify({ Nickname: sessionResult.nickname, UserId: sessionResult.userId })
         })
 
         const notifs = await response.json();
@@ -905,15 +905,17 @@ export const inableWebsocket = async () => {
         const sessionResult = await checkSession()
         // Logique pour traiter le message reçu
         if (isPrintable(message, sessionResult)) {
+            if (message.content !== "") {
+                const notifGif = document.querySelector('.notifgif')
+                notifGif.style.display = 'flex';
+                insertNotif(message)
+            }
             if (discussionDivIsOpen(message, sessionResult)) {
-                if (message.content === "") {
-                    const typing = document.querySelector('.typing')
-                    typing.style.display = (typing.style.display === 'none' || typing.style.display === '') ? 'flex' : 'none';
-                }else{
+                if (message.content !== "") {
                     printMessage(message.content, "from-exp", message.timestamp);
-                    const notifGif = document.querySelector('.notifgif')
-                    notifGif.style.display = 'flex';
-                    insertNotif(message)
+                } else {
+                    const typing = document.querySelector('.typing')
+                    message.type === 'disable' ? typing.style.display = 'none' : typing.style.display = 'flex'
                 }
             }
         }
@@ -947,11 +949,12 @@ export function insertNotif(message) {
 }
 
 // Fonction pour envoyer un message au serveur via WebSocket
-export function sendMessage(sender, receiver, content, time) {
+export function sendMessage(sender, receiver, content, type, time) {
     let message = {
         Sender: sender,
         Receiver: receiver,
         Content: content,
+        Type: type,
         Timestamp: time,
     };
     console.log("le message", message);
@@ -975,20 +978,37 @@ export async function verifyUsers() {
     return [sessionResult.nickname, receiver]
 }
 
+
 export async function onTextareaEvents() {
-    const [senderNickname, receiverNickname] = await verifyUsers()
-    // Code pour envoyer une notification au serveur WebSocket
-    const message = {
-        sender: senderNickname, // Le sender est l'utilisateur actuel
-        receiver: receiverNickname, // L'ID du destinataire
-        content: "", // Vous pouvez envoyer un message vide ou un indicateur que l'utilisateur commence à rédiger
-        timestamp: "" // Le timestamp peut être ajouté côté serveur
-    };
+    const [senderNickname, receiverNickname] = await verifyUsers();
+    const textarea = document.getElementById('sms');
+    let typingTimeout = null; // Store the timeout reference
 
-    // Envoyer le message WebSocket au serveur
-    socket.send(JSON.stringify(message));
+    textarea.addEventListener('input', () => {
+        clearTimeout(typingTimeout); // Clear any existing timeout
+
+        let message = {
+            sender: senderNickname,
+            receiver: receiverNickname,
+            content: "",
+            type: "enable",
+            timestamp: formatMDate(new Date().toLocaleString())
+        };
+        socket.send(JSON.stringify(message));
+
+        // Set a new timeout to send "disable" after 2 seconds of inactivity
+        typingTimeout = setTimeout(() => {
+            let message = {
+                sender: senderNickname,
+                receiver: receiverNickname,
+                content: "",
+                type: "disable",
+                timestamp: formatMDate(new Date().toLocaleString())
+            };
+            socket.send(JSON.stringify(message));
+        }, 2000); 
+    });
 }
-
 
 // Fonction pour envoyer un message du chat box via WebSocket
 export function sendChatMessage(sender, receiver) {
@@ -998,7 +1018,7 @@ export function sendChatMessage(sender, receiver) {
         return;
     }
     let timestamp = formatMDate(new Date().toLocaleString())
-    sendMessage(sender, receiver, messageContent, timestamp);
+    sendMessage(sender, receiver, messageContent, "sms", timestamp);
     messageInput.value = ""; // Effacer le contenu après l'envoi
     printMessage(messageContent, "from-usr", timestamp)
 }
@@ -1109,7 +1129,7 @@ export async function getDiscutions() {
                 //Gestion scroll
                 await handleScroll(senderNickname, nickname)
 
-                detectTextareaMove();
+                detectTextareaMove(senderNickname, nickname);
                 // activateTextareaDetection();
                 // desactivateTextareaDetection();
 
@@ -1161,10 +1181,19 @@ export async function getDiscutions() {
 }
 
 // Fonction pour activer la détection lorsque le textarea est activé
-export function detectTextareaMove() {
+export function detectTextareaMove(senderNickname, receiverNickname) {
     const textarea = document.getElementById('sms');
     textarea.addEventListener('focus', onTextareaEvents);
-    textarea.addEventListener('blur', onTextareaEvents);
+    textarea.addEventListener('blur', () => {
+        let message = {
+            sender: senderNickname,
+            receiver: receiverNickname,
+            content: "",
+            type: "disable",
+            timestamp: formatMDate(new Date().toLocaleString())
+        };
+        socket.send(JSON.stringify(message));
+    })
 }
 
 // export function desactivateTextareaDetection() {

@@ -81,6 +81,7 @@ func createTables(db *sql.DB) {
 			SenderNickname TEXT NOT NULL,
 			ReceiverNickname TEXT NOT NULL,
 			Content TEXT NOT NULL,
+			Type TEXT NOT NULL,
 			Date DATETIME NOT NULL
 		);
 

@@ -613,6 +613,7 @@ type Discussions struct {
 	Sender    string `json:"sender"`
 	Receiver  string `json:"receiver"`
 	Content   string `json:"content"`
+	Type      string `json:"type"`
 	Timestamp string `json:"timestamp"`
 }
 
@@ -636,13 +637,13 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	// Enregistrer le nouveau client WebSocket
 	clients[ws] = true
 	// Notification d'un nouvel utilisateur connecté
-	broadcast <- Discussions{Sender: "System", Receiver: "", Content: "New user", Timestamp: ""}
+	broadcast <- Discussions{Sender: "System", Receiver: "", Content: "New user", Type: "notif", Timestamp: time.Now().Format("2006-01-02 15:04:05")}
 
 	// Suppression de l'entrée client lorsqu'il se déconnecte
 	defer func() {
 		delete(clients, ws)
 		// Notification d'un utilisateur déconnecté
-		broadcast <- Discussions{Sender: "System", Receiver: "", Content: "User left", Timestamp: ""}
+		broadcast <- Discussions{Sender: "System", Receiver: "", Content: "User left", Type: "notif", Timestamp: time.Now().Format("2006-01-02 15:04:05")}
 	}()
 
 	// Boucle pour écouter les messages des clients
@@ -659,7 +660,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 
 		if msg.Content != "" {
 
-			msg.Content = html.EscapeString(msg.Content)
+			// msg.Content = html.EscapeString(msg.Content)
 
 			now := time.Now()
 
@@ -703,7 +704,7 @@ func HandleMessages() {
 func SaveMessageToDB(msg Discussions) error {
 
 	// Utilisez senderID et receiverID pour insérer le message dans la base de données
-	_, err := database.DB.Exec("INSERT INTO messages (SenderNickname, ReceiverNickname, Content, Date) VALUES (?, ?, ?, ?)", msg.Sender, msg.Receiver, msg.Content, msg.Timestamp)
+	_, err := database.DB.Exec("INSERT INTO messages (SenderNickname, ReceiverNickname, Content, Type, Date) VALUES (?, ?, ?, ?, ?)", msg.Sender, msg.Receiver, msg.Content, msg.Type, msg.Timestamp)
 	if err != nil {
 		return fmt.Errorf("error inserting message: %v", err)
 	}
