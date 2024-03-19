@@ -103,6 +103,7 @@
     left: 50%;
     right: 50%;
     cursor: pointer;
+    border-radius: 20px;
 }
 
 .homepage nav {
