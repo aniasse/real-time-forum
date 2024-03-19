@@ -658,6 +658,9 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if msg.Content != "" {
+
+			msg.Content = html.EscapeString(msg.Content)
+
 			now := time.Now()
 
 			// Formater le temps dans le format spécifié "2006-01-02 15:04:05"
