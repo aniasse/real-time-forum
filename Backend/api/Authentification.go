@@ -469,26 +469,66 @@ func handleGetUsers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Récupérer tous les nicknames sauf celui de l'utilisateur spécifié
-	query := `SELECT u.Nickname, 
-				CASE WHEN s.UserId IS NULL THEN 'red' ELSE 'green' END AS status 
-			FROM users u
-			LEFT JOIN sessions s ON u.Id = s.UserId AND s.SessionExpiry > DATETIME('now')
-			WHERE u.Id != $1 
-			ORDER BY (
-			SELECT MAX(Date)
-			FROM messages m
-			WHERE m.SenderNickname = u.Nickname OR m.ReceiverNickname = u.Nickname
-			) DESC NULLS LAST,
-			LOWER(u.Nickname) ASC;
-    `
-	rows, err := database.DB.Query(query, user.UserId)
+	userInfos, err := database.GetUserByID(user.UserId)
+
 	if err != nil {
-		fmt.Println("Erreur lors de la récupération des utilisateurs:", err)
 		jsonResponse(w, http.StatusInternalServerError, "Internal Server Error")
+		fmt.Println("Error lors de la recuperation du user dans la base de donnée:", err)
 		return
 	}
-	defer rows.Close()
+
+	var userExists bool
+	err = database.DB.QueryRow("SELECT EXISTS (SELECT 1 FROM messages WHERE SenderNickname = ? OR ReceiverNickname = ?)", userInfos.Nickname, userInfos.Nickname).Scan(&userExists)
+	if err != nil {
+		jsonResponse(w, http.StatusInternalServerError, "Internal Server Error")
+		fmt.Println("Error lors de la verification du user dans messages:", err)
+		return
+	}
+
+	var rows *sql.Rows
+
+	if userExists {
+		// Récupérer tous les nicknames sauf celui de l'utilisateur spécifié
+		query := `SELECT u.Nickname, 
+						CASE WHEN s.UserId IS NULL THEN 'red' ELSE 'green' END AS status 
+					FROM users u
+					LEFT JOIN sessions s ON u.Id = s.UserId AND s.SessionExpiry > DATETIME('now')
+					WHERE u.Id != $1 
+					ORDER BY (
+					SELECT MAX(Date)
+					FROM messages m
+					WHERE m.SenderNickname = u.Nickname OR m.ReceiverNickname = u.Nickname
+					) DESC NULLS LAST,
+					LOWER(u.Nickname) ASC;
+			`
+		rows, err = database.DB.Query(query, user.UserId)
+		if err != nil {
+			fmt.Println("Erreur lors de la récupération des utilisateurs:", err)
+			jsonResponse(w, http.StatusInternalServerError, "Internal Server Error")
+			return
+		}
+		defer rows.Close()
+
+	} else {
+		query := `
+		SELECT Nickname, 
+        CASE WHEN IsOnline THEN 'green' ELSE 'red' END AS status 
+		FROM (
+			SELECT u.Nickname,
+				EXISTS(SELECT 1 FROM sessions s WHERE s.UserId = u.Id AND s.SessionExpiry > DATETIME('now')) AS IsOnline
+			FROM users u
+			WHERE u.Id != :userId
+		)
+		ORDER BY LOWER(Nickname) ASC 
+		`
+		rows, err = database.DB.Query(query, user.UserId)
+		if err != nil {
+			fmt.Println("Erreur lors de la récupération des utilisateurs:", err)
+			jsonResponse(w, http.StatusInternalServerError, "Internal Server Error")
+			return
+		}
+		defer rows.Close()
+	}
 
 	var userNicknames []UserNickname
 	for rows.Next() {
