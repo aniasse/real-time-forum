@@ -1006,7 +1006,7 @@ export async function onTextareaEvents() {
                 timestamp: formatMDate(new Date().toLocaleString())
             };
             socket.send(JSON.stringify(message));
-        }, 2000); 
+        }, 1000); 
     });
 }
 
