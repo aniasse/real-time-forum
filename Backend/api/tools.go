@@ -31,16 +31,3 @@ func jsonResponse2(w http.ResponseWriter, statusCode int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(data)
 }
-
-// // Création d'un nouveau cookie avec le nom "sessionID" et la valeur de l'identifiant de session
-// cookie := http.Cookie{
-// 	Name:     "sessionID",
-// 	Value:    sessionID.String(),
-// 	Expires:  sessionExpiry,
-// 	HttpOnly: true, // Le cookie ne sera accessible que via HTTP (pas via JavaScript)
-// }
-
-// // Ajout du cookie à la réponse HTTP
-// http.SetCookie(w, &cookie)
-// jsonResponse(w, http.StatusOK, "Connexion réussie")
-// fmt.Println("connexion réussie: ")
